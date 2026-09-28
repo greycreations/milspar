@@ -14,12 +14,12 @@ Service, tidslinje, fordonssida, dokument, bilder, däck, kostnader och inloggni
 
 Krav: Docker Engine/Desktop och Docker Compose **2.20+**.
 
-1. Klona repot och välj branchen med fordonsfunktionen (för närvarande `feat/vehicle-foundation`, PR #2).
+1. Ladda ner [docker-compose.yml för v0.1.0-preview.1](https://github.com/greycreations/milspar/releases/download/v0.1.0-preview.1/docker-compose.yml) till en egen katalog. Ingen Git-kloning eller källkod behövs. Förhandsreleasen stöder Linux amd64 (vanliga Intel/AMD-servrar).
 2. Inställningarna finns direkt i `docker-compose.yml`; ingen `.env` behövs. Standardporten är 3080. Om du ändrar databaslösenord, ändra både DATABASE_URL och POSTGRES_PASSWORD till samma URL-säkra lösenord.
 3. Kör:
 
 ```sh
-docker compose up -d --build --wait
+docker compose up -d --wait
 ```
 
 Öppna **http://localhost:3080**. På mobilen används **http://VÄRDDATORNS-LAN-IP:3080** på samma nätverk; brandväggen måste tillåta vald webbport. Ändra `3080:80` under web/ports direkt i Compose-filen vid behov. Webb och API använder samma origin; inga frontend-URL:er behöver byggas om.
@@ -35,7 +35,7 @@ docker compose start
 
 Webben publicerar port 3080 (eller vald port i Compose). API och PostgreSQL är endast åtkomliga inom Compose-nätverket. Web/API liveness: intern /health; API readiness: intern /ready. Readiness kontrollerar databas och tabeller. Upload-volymen är förberedd, men uppladdning är ännu inte implementerad.
 
-`docker compose -f docker-compose.dev.yml up --build` är ett kompatibelt alternativ som inkluderar samma stack; det är inte en separat hot-reload-miljö.
+För utveckling från klonad källkod: `docker compose -f docker-compose.dev.yml up -d --build --wait`. Den filen bygger lokala images; den är inte en hot-reload-miljö. Rootens Compose-fil använder publicerade images låsta med version och digest.
 
 ## Uppgradera utan att förlora data
 
@@ -47,7 +47,7 @@ Ta backup av databasen och eventuella filer före uppgradering. Exempel på data
 docker compose exec -T db sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc -f /tmp/milspar.dump'
 docker compose cp db:/tmp/milspar.dump ./milspar.dump
 docker compose down
-docker compose up -d --build --wait
+docker compose up -d --wait
 ```
 
 `down` utan `-v` behåller data. **Använd inte `down -v` för uppgradering.**
@@ -56,7 +56,7 @@ Migreringsservicen körs före API-start. Den första journalförda migrationen 
 
 POSTGRES_USER/PASSWORD/DB måste motsvara en befintlig volyms konfiguration. Att ändra Compose ändrar inte lösenord i en redan initierad databas. Vid uppgradering från .env: för över dina befintliga värden till både DB-konfigurationen och API:ts DATABASE_URL i Compose innan start. Gamla .env-värden används inte längre av Compose.
 
-Full backup omfattar PostgreSQL, uploads och konfiguration/version. Ett komplett dokumenterat restore-flöde återstår.
+Full backup omfattar PostgreSQL, uploads och konfiguration/version. Se [installations- och återställningsanvisningar](release/INSTALL.md).
 
 ## Lokal utveckling utan Docker-webb
 
@@ -87,4 +87,4 @@ Läs `docs/PRODUCT-SPEC.md`, `docs/DATA-MODEL.md`, `docs/ROADMAP.md` och `docs/a
 
 ## Framtida releaser
 
-En release ska kunna installeras med endast en Compose-fil och färdigpublicerade images, utan Git, källkod eller .env. Se [releasekraven](docs/RELEASE-CHECKLIST.md). Den aktuella branchen bygger fortfarande från källkod och är ännu inte en sådan paketerad release.
+En release ska kunna installeras med endast en Compose-fil och färdigpublicerade images, utan Git, källkod eller .env. Se [releasekraven](docs/RELEASE-CHECKLIST.md). Publiceringsflödet i `.github/workflows/release.yml` bygger och publicerar images, genererar en versions- och digestlåst Compose-fil och verifierar anonym nedladdning, start, browserflöden, portbyte, beständighet och uppgradering från det ursprungliga schemat innan GitHub-releasen skapas.

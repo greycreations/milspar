@@ -17,8 +17,8 @@ Beslutat av användaren 2026-09-28 efter problem med Git, images och portkonflik
 - Publicera versionsspecifik Compose-fil och kort installations-/uppgraderingsinstruktion tillsammans. Beskriv backup, restore och eventuella manuella migrationssteg.
 - Release notes anger testade plattformar och begränsningar; kalla inte tjänsten redo för publik exponering innan auth/åtkomstkontroll är klar.
 
-## Nuvarande utvecklingsbranch
+## Implementation
 
-Rootens docker-compose.yml har inställningarna direkt i filen och kräver ingen .env. Den bygger fortfarande från källkod. Den är en utvecklingsinstallation, inte ännu en release som uppfyller kravet ovan.
+Release-workflow publicerar web/API till GHCR och använder samma API-image för migrering. Den genererade Compose-filen låser alla images med digest, även PostgreSQL. En separat runner hämtar images utan registry-inloggning och verifierar start från en tom katalog med endast Compose-filen, browserflöden, portbyte, beständighet och uppgradering från originalschemat. Först efter godkända tester skapas en GitHub-förhandsrelease med Compose, installationsanvisningar och SHA256SUMS.
 
-Nästa releasearbete är därför registry/image-publicering och en separat genererad, versionslåst releasefil. Publiceringsflödet måste verifiera att images faktiskt går att hämta innan releasen markeras färdig.
+Rootens Compose-fil är installationen för v0.1.0-preview.1. docker-compose.dev.yml bygger källkod för utveckling och vanlig CI. Plattform: Linux amd64. Inför nästa release ska uppgraderingskontrollen dessutom utgå från föregående publicerade release. Publicering startas manuellt via workflow_dispatch eller vid ändringar i releaseflödet/mallarna på main eller feat/vehicle-foundation.

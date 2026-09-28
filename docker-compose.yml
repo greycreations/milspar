@@ -1,10 +1,9 @@
+# Milspår v0.1.0-preview.1 — standalone, no Git or .env needed.
 # All installation settings are in this file; no .env required.
 # Change port 3080 below if occupied. Keep existing DB credentials when upgrading.
 services:
   web:
-    build:
-      context: .
-      dockerfile: apps/web/Dockerfile
+    image: ghcr.io/greycreations/milspar-web:v0.1.0-preview.1@sha256:110cc634822adcd9e2d945763e03b7905fb5e6b93a2fbab0a8f4b4634503b005
     restart: unless-stopped
     ports:
       - "3080:80"
@@ -17,9 +16,7 @@ services:
       timeout: 5s
       retries: 5
   api:
-    build:
-      context: .
-      dockerfile: apps/api/Dockerfile
+    image: ghcr.io/greycreations/milspar-api:v0.1.0-preview.1@sha256:0e8f0a0126eb9b7d38a63686a0b4c0af047cf0e04b40f257e166d711a45d0f3a
     restart: unless-stopped
     environment: &api-environment
       API_PORT: 3001
@@ -37,9 +34,7 @@ services:
       timeout: 8s
       retries: 5
   migrate:
-    build:
-      context: .
-      dockerfile: apps/api/Dockerfile
+    image: ghcr.io/greycreations/milspar-api:v0.1.0-preview.1@sha256:0e8f0a0126eb9b7d38a63686a0b4c0af047cf0e04b40f257e166d711a45d0f3a
     restart: "no"
     command: ["pnpm", "--filter", "@milspar/api", "db:migrate"]
     environment: *api-environment
@@ -47,7 +42,7 @@ services:
       db:
         condition: service_healthy
   db:
-    image: postgres:17-alpine
+    image: postgres@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24
     restart: unless-stopped
     environment:
       POSTGRES_DB: milspar
