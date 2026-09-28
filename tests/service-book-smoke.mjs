@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 const base = process.env.SMOKE_BASE_URL ?? "http://127.0.0.1:3080";
-const bytes = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=", "base64");
+const bytes = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAIAAAAmkwkpAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAEUlEQVQImWP4elQCjhiI4wAAA3EdIbd4yRcAAAAASUVORK5CYII=", "base64");
 async function json(path, method = "GET", body) {
   const response = await fetch(base + "/api/v1" + path, { method, ...(body ? { headers: { "content-type": "application/json" }, body: JSON.stringify(body) } : {}) });
   assert.ok(response.ok, `${method} ${path}: ${response.status} ${response.ok ? "" : await response.text()}`);

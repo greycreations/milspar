@@ -10,7 +10,7 @@ export const createVehicleSchema = z.object({
   variant: z.string().trim().max(120).optional(),
   modelYear: z.number().int().min(1886).max(2200).optional(),
   color: z.string().trim().max(80).optional(),
-  currentOdometerKm: z.number().int().nonnegative().optional(),
+  currentOdometerKm: z.number().int().nonnegative().max(2147483647).optional(),
 });
 
 export const vehicleSummarySchema = z.object({

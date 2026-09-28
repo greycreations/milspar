@@ -11,6 +11,7 @@ const vehicle = {
 const emptyBook = { events: [], wheelSets: [], tireBatches: [], fitments: [], maintenance: [], assets: [], totals: [] };
 const bookEvent = { id, vehicleId: id, revision: 1, type: "odometer", title: "Mätarställning", occurredAt: vehicle.createdAt, createdAt: vehicle.createdAt, odometerKm: 0, items: [], description: "", vendor: "", costMinor: null, currency: "SEK", wheelBatchId: null, anomaly: false };
 test.beforeEach(async ({ page }) => {
+  await page.route(`**/api/v1/vehicles/${id}/book`, route => route.fulfill({ json: emptyBook }));
   if (!process.env.E2E_BASE_URL) {
     await page.route("**/api/v1/overview", route => route.fulfill({ json: { events: [], maintenance: [] } }));
     await page.route("**/api/v1/vehicles/*/book", route => route.fulfill({ json: emptyBook }));
