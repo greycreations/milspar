@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS "vehicles" (
   "updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 
+--> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "odometer_readings" (
   "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
   "vehicle_id" uuid NOT NULL REFERENCES "vehicles"("id") ON DELETE cascade,
@@ -21,5 +22,6 @@ CREATE TABLE IF NOT EXISTS "odometer_readings" (
   "created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 
+--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "odometer_vehicle_recorded_idx"
   ON "odometer_readings" ("vehicle_id", "recorded_at" DESC);

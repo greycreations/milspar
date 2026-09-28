@@ -8,5 +8,5 @@ if (!connectionString) {
   throw new Error("DATABASE_URL is required");
 }
 
-const client = postgres(connectionString, { max: 10 });
+export const client = postgres(connectionString, { max: 10, connect_timeout: 5 });
 export const db = drizzle(client, { schema });

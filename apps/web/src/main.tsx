@@ -1,21 +1,26 @@
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import ReactDOM from "react-dom/client";
 import { CarFront, Gauge, Inbox, LayoutDashboard, Plus, Search, Settings, Wrench } from "lucide-react";
 import type { VehicleSummary } from "@milspar/contracts";
 import "./styles.css";
 
-const API = import.meta.env.VITE_API_URL ?? "http://localhost:3001/api/v1";
+const API = import.meta.env.VITE_API_URL ?? "/api/v1";
 
 function App() {
   const [vehicles, setVehicles] = useState<VehicleSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [showCreate, setShowCreate] = useState(false);
 
   async function loadVehicles() {
     setLoading(true);
+    setLoadError("");
     try {
       const response = await fetch(`${API}/vehicles`);
-      if (response.ok) setVehicles(await response.json());
+      if (!response.ok) throw new Error("Kunde inte hämta fordonen.");
+      setVehicles(await response.json());
+    } catch {
+      setLoadError("Kunde inte hämta fordonen. Kontrollera anslutningen och försök igen.");
     } finally {
       setLoading(false);
     }
@@ -42,7 +47,9 @@ function App() {
           <div className="top-actions"><button className="icon-button" aria-label="Sök"><Search size={20}/></button><button onClick={() => setShowCreate(true)}><Plus size={18}/> Lägg till fordon</button></div>
         </header>
 
-        {loading ? <div className="empty">Laddar fordon…</div> : vehicles.length === 0 ? (
+        {loading ? <div className="empty" role="status">Laddar fordon…</div> : loadError ? (
+          <section className="empty card" role="alert"><p>{loadError}</p><button onClick={() => void loadVehicles()}>Försök igen</button></section>
+        ) : vehicles.length === 0 ? (
           <section className="empty card">
             <div className="empty-icon"><CarFront size={30}/></div>
             <h2>Din servicebok börjar här</h2>
@@ -87,6 +94,14 @@ function VehicleCard({ vehicle }: { vehicle: VehicleSummary }) {
 function CreateVehicleModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const dialog = useRef<HTMLDialogElement>(null);
+
+  useEffect(() => {
+    const previous = document.activeElement;
+    dialog.current?.showModal();
+    dialog.current?.querySelector<HTMLInputElement>('input[name="registrationNumber"]')?.focus();
+    return () => { if (previous instanceof HTMLElement) previous.focus(); };
+  }, []);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setSaving(true); setError("");
@@ -101,28 +116,39 @@ function CreateVehicleModal({ onClose, onCreated }: { onClose: () => void; onCre
     };
     try {
       const response = await fetch(`${API}/vehicles`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
-      if (!response.ok) throw new Error("Kunde inte spara fordonet.");
+      if (!response.ok) {
+        if (response.status === 409) throw new Error("Registreringsnummer eller VIN finns redan.");
+        if (response.status === 400) throw new Error("Kontrollera uppgifterna och försök igen.");
+        throw new Error("Kunde inte spara fordonet. Försök igen senare.");
+      }
       onCreated();
     } catch (e) { setError(e instanceof Error ? e.message : "Ett fel uppstod."); setSaving(false); }
   }
 
-  return <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-    <section className="modal" role="dialog" aria-modal="true" aria-labelledby="create-title">
-      <div className="modal-head"><div><span className="eyebrow">NYTT FORDON</span><h2 id="create-title">Lägg till fordon</h2></div><button className="icon-button" onClick={onClose} aria-label="Stäng">×</button></div>
+  return <dialog ref={dialog} className="modal" aria-labelledby="create-title"
+    onKeyDown={(event) => {
+      if (event.key !== "Tab") return;
+      const controls = event.currentTarget.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled)');
+      const first = controls[0];
+      const last = controls[controls.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+      if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+    }}
+    onCancel={(event) => { event.preventDefault(); if (!saving) onClose(); }}>
+      <div className="modal-head"><div><span className="eyebrow">NYTT FORDON</span><h2 id="create-title">Lägg till fordon</h2></div><button className="icon-button" disabled={saving} onClick={onClose} aria-label="Stäng">×</button></div>
       <form onSubmit={submit}>
         <div className="form-grid">
-          <label>Registreringsnummer<input name="registrationNumber" required autoFocus placeholder="ABC 123"/></label>
+          <label>Registreringsnummer<input name="registrationNumber" required placeholder="ABC 123"/></label>
           <label>Årsmodell<input name="modelYear" type="number" min="1886" max="2200" placeholder="2026"/></label>
           <label>Märke<input name="make" required placeholder="Volkswagen"/></label>
           <label>Modell<input name="model" required placeholder="ID.7"/></label>
           <label className="wide">Variant<input name="variant" placeholder="Tourer GTX Edition"/></label>
           <label className="wide">Aktuell mätarställning<input name="currentOdometerKm" type="number" min="0" step="1" inputMode="numeric" placeholder="28460"/><span className="field-help">km</span></label>
         </div>
-        {error && <p className="form-error">{error}</p>}
-        <div className="modal-actions"><button type="button" className="secondary" onClick={onClose}>Avbryt</button><button disabled={saving}>{saving ? "Sparar…" : "Spara fordon"}</button></div>
+        {error && <p className="form-error" role="alert">{error}</p>}
+        <div className="modal-actions"><button type="button" className="secondary" disabled={saving} onClick={onClose}>Avbryt</button><button disabled={saving}>{saving ? "Sparar…" : "Spara fordon"}</button></div>
       </form>
-    </section>
-  </div>;
+  </dialog>;
 }
 
 ReactDOM.createRoot(document.getElementById("root")!).render(<App />);

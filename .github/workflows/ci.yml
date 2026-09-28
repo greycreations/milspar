@@ -1,0 +1,58 @@
+name: Verify Milspår
+on:
+  push:
+    branches: [main, feat/vehicle-foundation]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm build
+      - run: pnpm test
+      - run: pnpm exec playwright install --with-deps chromium
+      - name: Validate both Compose entry points
+        run: |
+          docker compose config --quiet
+          docker compose -f docker-compose.dev.yml config --quiet
+      - name: Build and start actual containers
+        run: docker compose up -d --build --wait
+      - name: Browser flows through nginx and PostgreSQL
+        run: pnpm test:e2e
+        env:
+          E2E_BASE_URL: http://127.0.0.1:3000
+      - name: Check persistence across container recreation
+        run: |
+          node tests/smoke.mjs create
+          docker compose down
+          docker compose up -d --wait
+          node tests/smoke.mjs verify
+      - name: Check upgrade from original init SQL
+        env:
+          APP_PORT: 3002
+        run: |
+          docker compose -p milspar-legacy up -d db --wait
+          docker compose -p milspar-legacy exec -T db psql -U milspar -d milspar -v ON_ERROR_STOP=1 < apps/api/drizzle/0000_vehicle_foundation.sql
+          echo "INSERT INTO vehicles (registration_number, make, model) VALUES ('LEGACY1', 'Volvo', '240');" | docker compose -p milspar-legacy exec -T db psql -U milspar -d milspar -v ON_ERROR_STOP=1
+          docker compose -p milspar-legacy up -d --build --wait
+          node tests/smoke.mjs legacy
+      - name: Container diagnostics
+        if: always()
+        run: |
+          docker compose logs --no-color
+          docker compose -p milspar-legacy logs --no-color
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: browser-failure
+          path: test-results/
