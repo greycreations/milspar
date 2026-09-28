@@ -34,11 +34,15 @@ Regel för framtida behov. Stödjer intervall i tid, distans eller båda, samt e
 
 ### TireSet
 
-En hjul-/däckuppsättning. Fält inkluderar namn, season/type, make/model, dimension, DOT, purchase data och notes.
+En hjuluppsättning med namn, säsong och fälguppgifter: benämning, fabrikat/modell, diameter/bredd, färg och valfria ET/bultmönster. Dimensioner kan skilja fram/bak. Se NEXT-RELEASE-PLAN.md för nästa leverans.
+
+### TireBatch (däckomgång)
+
+Tillhör TireSet och bevarar däckens fabrikat, modell, dimensioner, införskaffningsdatum och valfria DOT/typ/inköpspris. Byte av slitna däck skapar en ny omgång så tidigare historik inte skrivs om.
 
 ### TireFitment
 
-Period då en TireSet är monterad på ett Vehicle. `mounted_at`, `mounted_odometer`, `removed_at`, `removed_odometer`. Distans summeras över avslutade perioder och pågående period mot senaste odometer.
+Period då en TireSet med en bestämd TireBatch är monterad på ett Vehicle. Kopplas till hjulbytets Event. Högst en aktiv period per fordon/uppsättning; saknade km ger ofullständig distans och överlapp/negativa differenser kräver granskning. `mounted_at`, `mounted_odometer`, `removed_at`, `removed_odometer`. Distans summeras över avslutade perioder och pågående period mot senaste odometer.
 
 ### TireMeasurement
 

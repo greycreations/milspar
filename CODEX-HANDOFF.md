@@ -42,7 +42,11 @@ Profilbild/StorageProvider, redigering, separat mätarregistrering, gemensam Eve
 
 Fordonsvyn följer brytpunkterna <768, 768–1199 och >=1200 px. Design System v1.0 är fortsatt låst.
 
-## Exakt nästa steg
+## Uppdaterad leveransprioritering
+
+Följ docs/NEXT-RELEASE-PLAN.md för nästa samlade leverans. Den ersätter äldre stegordning nedan: gemensam historik och fordonsredigering → service/kostnad → filer/profilbild → sommar-/vinterhjul och hjulbyten → underhåll/översikt → samlad Compose-release. Live-data planeras konceptuellt; manuell registrering är primär. Planering innebär inte att funktionerna redan är implementerade.
+
+## Tidigare stegordning (bakgrund)
 
 1. Kontrollera aktuell fordonsvy-PR och CI. Åtgärda eventuella fel i Compose-start/legacy-upgrade innan grunden kallas verifierad.
 2. Låt PR vara kontrollpunkt; merge först på användarens aktuella instruktion.

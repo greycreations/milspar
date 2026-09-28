@@ -1,5 +1,7 @@
 # Milspår — Roadmap
 
+Aktuell leveransplan: [Nästa samlade leverans](NEXT-RELEASE-PLAN.md). Grundläggande sommar-/vinterhjul och hjulbyten ingår nu i nästa leverans; live-data planeras konceptuellt men anslutningar kommer senare.
+
 Roadmapen prioriterar en användbar kärna framför att bygga alla integrations- och AI-idéer samtidigt.
 
 ## Phase 0 — Baseline
@@ -26,10 +28,9 @@ Roadmapen prioriterar en användbar kärna framför att bygga alla integrations-
 
 **MVP success:** användaren kan sköta den löpande serviceboken helt i Milspår från mobil och desktop utan AI.
 
-## Phase 2 — Däck & fördjupad ekonomi
+## Phase 2 — Fördjupad däckhantering & ekonomi
 
-- TireSet/TireFitment
-- Automatisk körsträcka per uppsättning
+- TireSet/TireFitment och grundläggande körsträcka flyttas till nästa leverans enligt NEXT-RELEASE-PLAN.md
 - Mönsterdjup/rotation
 - Månadsunderlag och kategorier
 - Fasta/rörliga kostnader
