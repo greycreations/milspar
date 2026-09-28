@@ -1,6 +1,6 @@
 # Nästa samlade leverans — användbar servicebok och hjulhantering
 
-Uppdaterad 2026-09-28. Den beslutade omfattningen nedan är implementerad på feat/vehicle-detail (PR #3). Dockerflöden, datamigrering och återställning av databas och originalfiler har verifierats i CI; slutlig releasepaketering följer efter sista regressionen. Planen ersätter tidigare prioritering som lade grundläggande däckhantering efter servicebokens MVP. Design System v1.0 och kravet på en enda Compose-fil gäller fortsatt.
+Uppdaterad 2026-09-28. Den beslutade omfattningen nedan är implementerad på feat/vehicle-detail (PR #3). Levererad som v0.1.0-preview.5. Dockerflöden, datamigrering, återställning av databas och originalfiler samt uppgradering från preview.4 är verifierade. PR #3 är fortfarande en separat granskningspunkt inför main. Planen ersätter tidigare prioritering som lade grundläggande däckhantering efter servicebokens MVP. Design System v1.0 och kravet på en enda Compose-fil gäller fortsatt.
 
 ## Mål och nuläge
 

@@ -19,7 +19,7 @@ Borttagning är spårbar: poster och original bevaras i arkivet men döljs från
 
 Krav: Docker Engine/Desktop och Docker Compose **2.20+**.
 
-1. Ladda ner [docker-compose.yml för v0.1.0-preview.4](https://github.com/greycreations/milspar/releases/download/v0.1.0-preview.4/docker-compose.yml) till en egen katalog. Ingen Git-kloning eller källkod behövs. Förhandsreleasen stöder Linux amd64 (vanliga Intel/AMD-servrar).
+1. Ladda ner [docker-compose.yml för v0.1.0-preview.5](https://github.com/greycreations/milspar/releases/download/v0.1.0-preview.5/docker-compose.yml) till en egen katalog. Ingen Git-kloning eller källkod behövs. Förhandsreleasen stöder Linux amd64 (vanliga Intel/AMD-servrar).
 2. Inställningarna finns direkt i `docker-compose.yml`; ingen `.env` behövs. Standardporten är 3080. Om du ändrar databaslösenord, ändra både DATABASE_URL och POSTGRES_PASSWORD till samma URL-säkra lösenord.
 3. Kör:
 
@@ -38,7 +38,7 @@ docker compose stop
 docker compose start
 ```
 
-Webben publicerar port 3080 (eller vald port i Compose). API och PostgreSQL är endast åtkomliga inom Compose-nätverket. Web/API liveness: intern /health; API readiness: intern /ready. Readiness kontrollerar databas och tabeller. Upload-volymen är förberedd, men uppladdning är ännu inte implementerad.
+Webben publicerar port 3080 (eller vald port i Compose). API och PostgreSQL är endast åtkomliga inom Compose-nätverket. Web/API liveness: intern /health; API readiness: intern /ready. Readiness kontrollerar databas och tabeller. Upload-volymen bevarar originalfiler och bildpreviews mellan omstarter och uppgraderingar.
 
 För utveckling från klonad källkod: `docker compose -f docker-compose.dev.yml up -d --build --wait`. Den filen bygger lokala images; den är inte en hot-reload-miljö. Rootens Compose-fil använder publicerade images låsta med version och digest.
 
@@ -46,11 +46,10 @@ För utveckling från klonad källkod: `docker compose -f docker-compose.dev.yml
 
 Behåll samma katalog/Compose-projektnamn som tidigare. Standardnamngivna volymer är projektspecifika. Om katalogen byts, använd samma `-p PROJEKTNAMN` på alla kommandon.
 
-Ta backup av databasen och eventuella filer före uppgradering. Exempel på databasdump:
+Ta en sammanhängande backup av databas och uploads enligt [installationsanvisningarna](release/INSTALL.md). Ersätt sedan Compose-filen med den nya versionen och för över dina befintliga inställningar (port och databasvärden) innan start.
 
 ```sh
-docker compose exec -T db sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc -f /tmp/milspar.dump'
-docker compose cp db:/tmp/milspar.dump ./milspar.dump
+docker compose pull
 docker compose down
 docker compose up -d --wait
 ```
