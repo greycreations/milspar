@@ -8,15 +8,22 @@
     "build": "tsc -p tsconfig.json --noEmit",
     "start": "tsx src/server.ts",
     "test": "vitest run --passWithNoTests",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx src/db/migrate.ts"
   },
   "dependencies": {
+    "@fastify/cors": "^11.0.0",
     "@milspar/contracts": "workspace:*",
+    "drizzle-orm": "^0.44.0",
     "fastify": "^5.0.0",
+    "postgres": "^3.4.0",
     "zod": "^4.0.0"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
     "@types/node": "^22.0.0",
+    "drizzle-kit": "^0.31.0",
     "tsx": "^4.0.0",
     "typescript": "^5.9.0",
     "vitest": "^3.2.0"

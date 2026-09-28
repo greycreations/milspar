@@ -1,39 +1,60 @@
+# Milspår v0.1.0-preview.1 — standalone, no Git or .env needed.
+# All installation settings are in this file; no .env required.
+# Change port 3080 below if occupied. Keep existing DB credentials when upgrading.
 services:
   web:
-    image: milspar-web:dev
-    container_name: milspar-web
+    image: ghcr.io/greycreations/milspar-web:v0.1.0-preview.1@sha256:110cc634822adcd9e2d945763e03b7905fb5e6b93a2fbab0a8f4b4634503b005
     restart: unless-stopped
     ports:
-      - "${APP_PORT:-3000}:3000"
+      - "3080:80"
     depends_on:
-      - api
-
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
   api:
-    image: milspar-api:dev
-    container_name: milspar-api
+    image: ghcr.io/greycreations/milspar-api:v0.1.0-preview.1@sha256:0e8f0a0126eb9b7d38a63686a0b4c0af047cf0e04b40f257e166d711a45d0f3a
     restart: unless-stopped
-    environment:
-      DATABASE_URL: ${DATABASE_URL}
-      UPLOAD_PATH: ${UPLOAD_PATH:-/data/uploads}
-      TZ: ${TZ:-Europe/Stockholm}
+    environment: &api-environment
+      API_PORT: 3001
+      DATABASE_URL: postgresql://milspar:change-me@db:5432/milspar
+      UPLOAD_PATH: /data/uploads
+      TZ: Europe/Stockholm
     volumes:
       - uploads:/data/uploads
     depends_on:
-      - db
-
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3001/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 8s
+      retries: 5
+  migrate:
+    image: ghcr.io/greycreations/milspar-api:v0.1.0-preview.1@sha256:0e8f0a0126eb9b7d38a63686a0b4c0af047cf0e04b40f257e166d711a45d0f3a
+    restart: "no"
+    command: ["pnpm", "--filter", "@milspar/api", "db:migrate"]
+    environment: *api-environment
+    depends_on:
+      db:
+        condition: service_healthy
   db:
-    image: postgres:17-alpine
-    container_name: milspar-db
+    image: postgres@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-milspar}
-      POSTGRES_USER: ${POSTGRES_USER:-milspar}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+      POSTGRES_DB: milspar
+      POSTGRES_USER: milspar
+      POSTGRES_PASSWORD: change-me
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U milspar -d milspar"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     volumes:
       - postgres_data:/var/lib/postgresql/data
-
 volumes:
   postgres_data:
   uploads:
-
-# Baseline placeholder. Images/build contexts will be replaced when implementation starts.

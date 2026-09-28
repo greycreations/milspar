@@ -77,3 +77,7 @@ Roadmapen prioriterar en användbar kärna framför att bygga alla integrations-
 - Fleet/enterprise workflows
 - Avancerad multi-tenant administration
 - Dekorativa dashboards utan konkret användarnytta
+
+## Release gate
+
+Varje framtida release ska installeras med en enda Compose-fil och publicerade versionslåsta images, utan Git eller .env. Se docs/RELEASE-CHECKLIST.md.

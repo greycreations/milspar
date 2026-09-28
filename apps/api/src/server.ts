@@ -1,18 +1,15 @@
-import Fastify from "fastify";
+import { buildApp } from "./app.js";
+import { client } from "./db/client.js";
 
-const app = Fastify({ logger: true });
-
-app.get("/health", async () => ({
-  status: "ok",
-  service: "milspar-api",
-}));
-
-const port = Number(process.env.API_PORT ?? 3001);
-const host = process.env.API_HOST ?? "0.0.0.0";
-
+const app = await buildApp();
+app.addHook("onClose", async () => { await client.end(); });
+for (const signal of ["SIGINT", "SIGTERM"] as const) {
+  process.once(signal, () => { void app.close(); });
+}
 try {
-  await app.listen({ port, host });
+  await app.listen({ port: Number(process.env.API_PORT ?? 3001), host: process.env.API_HOST ?? "0.0.0.0" });
 } catch (error) {
   app.log.error(error);
-  process.exit(1);
+  await app.close();
+  process.exitCode = 1;
 }

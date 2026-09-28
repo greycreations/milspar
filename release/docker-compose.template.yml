@@ -1,10 +1,9 @@
+# Milspår __RELEASE_VERSION__ — standalone, no Git or .env needed.
 # All installation settings are in this file; no .env required.
 # Change port 3080 below if occupied. Keep existing DB credentials when upgrading.
 services:
   web:
-    build:
-      context: .
-      dockerfile: apps/web/Dockerfile
+    image: __WEB_IMAGE__
     restart: unless-stopped
     ports:
       - "3080:80"
@@ -17,9 +16,7 @@ services:
       timeout: 5s
       retries: 5
   api:
-    build:
-      context: .
-      dockerfile: apps/api/Dockerfile
+    image: __API_IMAGE__
     restart: unless-stopped
     environment: &api-environment
       API_PORT: 3001
@@ -37,9 +34,7 @@ services:
       timeout: 8s
       retries: 5
   migrate:
-    build:
-      context: .
-      dockerfile: apps/api/Dockerfile
+    image: __API_IMAGE__
     restart: "no"
     command: ["pnpm", "--filter", "@milspar/api", "db:migrate"]
     environment: *api-environment
@@ -47,7 +42,7 @@ services:
       db:
         condition: service_healthy
   db:
-    image: postgres:17-alpine
+    image: __DB_IMAGE__
     restart: unless-stopped
     environment:
       POSTGRES_DB: milspar
