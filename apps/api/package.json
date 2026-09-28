@@ -13,6 +13,7 @@
     "db:migrate": "drizzle-kit migrate"
   },
   "dependencies": {
+    "@fastify/cors": "^11.0.0",
     "@milspar/contracts": "workspace:*",
     "drizzle-orm": "^0.44.0",
     "fastify": "^5.0.0",
