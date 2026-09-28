@@ -136,6 +136,6 @@ it("adopts the old init-SQL database without deleting data and can migrate twice
     await migrate(legacyDb, { migrationsFolder: "./drizzle" });
     await migrate(legacyDb, { migrationsFolder: "./drizzle" });
     expect((await legacy.query("SELECT registration_number FROM vehicles")).rows).toEqual([{ registration_number: "OLD123" }]);
-    expect((await legacy.query("SELECT * FROM drizzle.__drizzle_migrations")).rows).toHaveLength(2);
+    expect((await legacy.query("SELECT * FROM drizzle.__drizzle_migrations")).rows).toHaveLength(4);
   } finally { await legacy.close(); }
 }, 30000);

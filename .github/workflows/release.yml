@@ -123,12 +123,14 @@ jobs:
           INSTALL_DIR: ${{ runner.temp }}/install
         run: |
           node tests/smoke.mjs create
+          node tests/service-book-smoke.mjs create
           cd "$INSTALL_DIR"
           docker compose down
           sed -i 's/3080:80/3081:80/' docker-compose.yml
           docker compose up -d --wait
           cd "$GITHUB_WORKSPACE"
           SMOKE_BASE_URL=http://127.0.0.1:3081 node tests/smoke.mjs verify
+          SMOKE_BASE_URL=http://127.0.0.1:3081 node tests/service-book-smoke.mjs verify
       - name: Verify upgrade from original schema
         env:
           INSTALL_DIR: ${{ runner.temp }}/install

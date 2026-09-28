@@ -21,7 +21,7 @@ export const vehicleSummarySchema = z.object({
   variant: z.string().nullable(),
   modelYear: z.number().int().nullable(),
   currentOdometerKm: z.number().int().nonnegative().nullable(),
-  coverImageUrl: z.string().url().nullable(),
+  coverImageUrl: z.string().nullable(),
 });
 
 export type CreateVehicle = z.input<typeof createVehicleSchema>;
@@ -44,3 +44,4 @@ export const vehicleDetailSchema = vehicleSummarySchema.extend({
   hasMoreReadings: z.boolean(),
 });
 export type VehicleDetail = z.infer<typeof vehicleDetailSchema>;
+export * from "./service-book.js";

@@ -1,5 +1,7 @@
 import { test, expect } from "@playwright/test";
 
+test.beforeEach(async ({ page }) => { if (!process.env.E2E_BASE_URL) await page.route("**/api/v1/overview", route => route.fulfill({ json: { events: [], maintenance: [] } })); });
+
 test("create a vehicle and retain it after reload", async ({ page }, testInfo) => {
   const vehicles: unknown[] = [];
   if (!process.env.E2E_BASE_URL) {

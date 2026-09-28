@@ -8,6 +8,15 @@ const vehicle = {
   odometerReadings: [{ id, valueKm: 0, recordedAt: "2026-01-01T10:00:00.000Z", sourceType: "manual" }], hasMoreReadings: false,
 };
 
+const emptyBook = { events: [], wheelSets: [], tireBatches: [], fitments: [], maintenance: [], assets: [], totals: [] };
+const bookEvent = { id, vehicleId: id, revision: 1, type: "odometer", title: "Mätarställning", occurredAt: vehicle.createdAt, createdAt: vehicle.createdAt, odometerKm: 0, items: [], description: "", vendor: "", costMinor: null, currency: "SEK", wheelBatchId: null, anomaly: false };
+test.beforeEach(async ({ page }) => {
+  if (!process.env.E2E_BASE_URL) {
+    await page.route("**/api/v1/overview", route => route.fulfill({ json: { events: [], maintenance: [] } }));
+    await page.route("**/api/v1/vehicles/*/book", route => route.fulfill({ json: emptyBook }));
+  }
+});
+
 test("confirm removal, recover from failure, refresh mileage and remove vehicle", async ({ page, request }, testInfo) => {
   let vehicleId = id;
   const registration = `R${Date.now().toString(36)}${testInfo.project.name[0]}`.toUpperCase();
@@ -24,10 +33,11 @@ test("confirm removal, recover from failure, refresh mileage and remove vehicle"
       if (route.request().method() === "DELETE") { removed = true; return route.fulfill({ status: 204 }); }
       return route.fulfill(removed ? { status: 404, json: {} } : { json: { ...data, currentOdometerKm: readingRemoved ? null : 42, odometerReadings: readingRemoved ? [] : data.odometerReadings } });
     });
-    await page.route(`**/api/v1/vehicles/${id}/odometer-readings/*`, route => { readingRemoved = true; return route.fulfill({ status: 204 }); });
+    await page.route(`**/api/v1/vehicles/${id}/book`, route => route.fulfill({ json: { ...emptyBook, events: readingRemoved ? [] : [{ ...bookEvent, odometerKm: 42 }] } }));
+    await page.route(`**/api/v1/vehicles/${id}/events/*`, route => { readingRemoved = true; return route.fulfill({ status: 204 }); });
   }
   let failures = 1;
-  await page.route(`**/api/v1/vehicles/${vehicleId}/odometer-readings/*`, route => {
+  await page.route(`**/api/v1/vehicles/${vehicleId}/events/*`, route => {
     if (failures-- > 0) return route.fulfill({ status: 503, json: {} });
     return route.fallback();
   });
@@ -75,6 +85,7 @@ test("vehicle card opens detail, timeline survives reload and browser back works
   } else {
     await page.route("**/api/v1/vehicles", route => route.fulfill({ json: [{ ...vehicle, registrationNumber: registration }] }));
     await page.route(`**/api/v1/vehicles/${id}`, route => route.fulfill({ json: { ...vehicle, registrationNumber: registration } }));
+    await page.route(`**/api/v1/vehicles/${id}/book`, route => route.fulfill({ json: { ...emptyBook, events: [bookEvent] } }));
   }
   await page.goto("/");
   await page.getByRole("link", { name: `Volvo V60, ${registration}` }).click();
@@ -102,7 +113,7 @@ test("direct links handle missing vehicles, retry and empty history", async ({ p
   missing = false;
   await page.getByRole("button", { name: "Försök igen" }).click();
   await expect(page.getByText("Ingen mätarställning registrerad", { exact: true })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Ingen mätarhistorik ännu" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Ingen historik ännu" })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await page.goto("/#vehicles/invalid");
   await expect(page.getByRole("alert")).toContainText("Fordonslänken är ogiltig");

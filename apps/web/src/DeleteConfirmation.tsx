@@ -17,7 +17,7 @@ export function DeleteConfirmation({ title, description, onCancel, onConfirm }: 
     if (busy) return;
     setBusy(true); setError("");
     try { await onConfirm(); }
-    catch { setError("Kunde inte ta bort. Kontrollera anslutningen och försök igen."); setBusy(false); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : "Kunde inte ta bort. Kontrollera anslutningen och försök igen."); setBusy(false); }
   }
   return <dialog ref={dialog} className="modal" aria-labelledby="delete-title" aria-describedby="delete-description"
     onKeyDown={event => {
