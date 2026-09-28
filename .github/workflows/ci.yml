@@ -30,7 +30,7 @@ jobs:
       - name: Browser flows through nginx and PostgreSQL
         run: pnpm test:e2e
         env:
-          E2E_BASE_URL: http://127.0.0.1:3000
+          E2E_BASE_URL: http://127.0.0.1:3080
       - name: Check persistence across container recreation
         run: |
           node tests/smoke.mjs create
@@ -38,9 +38,8 @@ jobs:
           docker compose up -d --wait
           node tests/smoke.mjs verify
       - name: Check upgrade from original init SQL
-        env:
-          APP_PORT: 3002
         run: |
+          docker compose down
           docker compose -p milspar-legacy up -d db --wait
           docker compose -p milspar-legacy exec -T db psql -U milspar -d milspar -v ON_ERROR_STOP=1 < apps/api/drizzle/0000_vehicle_foundation.sql
           echo "INSERT INTO vehicles (registration_number, make, model) VALUES ('LEGACY1', 'Volvo', '240');" | docker compose -p milspar-legacy exec -T db psql -U milspar -d milspar -v ON_ERROR_STOP=1

@@ -52,6 +52,6 @@ Utveckla schema/migration → kontrakt → domän/API → UI → relevanta teste
 
 ## Drift
 
-Följ README för .env, start och uppgradering. Avsett startkommando: docker compose up -d --build --wait. Compose 2.20+ behövs för det kompatibla dev-filnamnet. Samma webbadress används från desktop och LAN-mobil.
+Följ README för start och uppgradering. Alla Compose-inställningar finns direkt i docker-compose.yml (webbport 3080); ingen .env behövs. Läs även docs/RELEASE-CHECKLIST.md: framtida releaser måste starta från en enda Compose-fil med publicerade images, utan Git eller lokal byggning. Avsett startkommando: docker compose up -d --build --wait. Compose 2.20+ behövs för det kompatibla dev-filnamnet. Samma webbadress används från desktop och LAN-mobil.
 
-Behåll projektnamn/volymer vid uppgradering. Gör backup och använd aldrig down -v som uppgraderingslösning. .env ändrar inte redan lagrade DB-lösenord. Auth saknas; privat testinstallation tills åtkomstkontroll införts.
+Behåll projektnamn/volymer vid uppgradering. Gör backup och använd aldrig down -v som uppgraderingslösning. Ändringar i Compose ändrar inte redan lagrade DB-lösenord; flytta över befintliga anpassade värden från äldre .env vid uppgradering. Auth saknas; privat testinstallation tills åtkomstkontroll införts.

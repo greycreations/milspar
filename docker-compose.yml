@@ -1,3 +1,5 @@
+# All installation settings are in this file; no .env required.
+# Change port 3080 below if occupied. Keep existing DB credentials when upgrading.
 services:
   web:
     build:
@@ -5,7 +7,7 @@ services:
       dockerfile: apps/web/Dockerfile
     restart: unless-stopped
     ports:
-      - "${APP_PORT:-3000}:80"
+      - "3080:80"
     depends_on:
       api:
         condition: service_healthy
@@ -21,9 +23,9 @@ services:
     restart: unless-stopped
     environment: &api-environment
       API_PORT: 3001
-      DATABASE_URL: postgresql://${POSTGRES_USER:-milspar}:${POSTGRES_PASSWORD:-change-me}@db:5432/${POSTGRES_DB:-milspar}
+      DATABASE_URL: postgresql://milspar:change-me@db:5432/milspar
       UPLOAD_PATH: /data/uploads
-      TZ: ${TZ:-Europe/Stockholm}
+      TZ: Europe/Stockholm
     volumes:
       - uploads:/data/uploads
     depends_on:
@@ -48,11 +50,11 @@ services:
     image: postgres:17-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-milspar}
-      POSTGRES_USER: ${POSTGRES_USER:-milspar}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+      POSTGRES_DB: milspar
+      POSTGRES_USER: milspar
+      POSTGRES_PASSWORD: change-me
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-milspar} -d ${POSTGRES_DB:-milspar}"]
+      test: ["CMD-SHELL", "pg_isready -U milspar -d milspar"]
       interval: 5s
       timeout: 5s
       retries: 10

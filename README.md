@@ -15,14 +15,14 @@ Service, tidslinje, fordonssida, dokument, bilder, däck, kostnader och inloggni
 Krav: Docker Engine/Desktop och Docker Compose **2.20+**.
 
 1. Klona repot och välj branchen med fordonsfunktionen (för närvarande `feat/vehicle-foundation`, PR #2).
-2. Kopiera `.env.example` till `.env`. Använd ett URL-säkert lösenord (bokstäver, siffror, bindestreck/understreck). Det förs in i databasens anslutnings-URL.
+2. Inställningarna finns direkt i `docker-compose.yml`; ingen `.env` behövs. Standardporten är 3080. Om du ändrar databaslösenord, ändra både DATABASE_URL och POSTGRES_PASSWORD till samma URL-säkra lösenord.
 3. Kör:
 
 ```sh
 docker compose up -d --build --wait
 ```
 
-Öppna **http://localhost:3000**. På mobilen används **http://VÄRDDATORNS-LAN-IP:3000** på samma nätverk; brandväggen måste tillåta vald webbport. Ändra `APP_PORT` vid behov. Webb och API använder samma origin; inga frontend-URL:er behöver byggas om.
+Öppna **http://localhost:3080**. På mobilen används **http://VÄRDDATORNS-LAN-IP:3080** på samma nätverk; brandväggen måste tillåta vald webbport. Ändra `3080:80` under web/ports direkt i Compose-filen vid behov. Webb och API använder samma origin; inga frontend-URL:er behöver byggas om.
 
 Detta är en privat provinstallation utan inloggning. Exponera inte installationen publikt innan åtkomstkontroll införts.
 
@@ -33,7 +33,7 @@ docker compose stop
 docker compose start
 ```
 
-Webben publicerar port 3000 (eller APP_PORT). API och PostgreSQL är endast åtkomliga inom Compose-nätverket. Web/API liveness: intern /health; API readiness: intern /ready. Readiness kontrollerar databas och tabeller. Upload-volymen är förberedd, men uppladdning är ännu inte implementerad.
+Webben publicerar port 3080 (eller vald port i Compose). API och PostgreSQL är endast åtkomliga inom Compose-nätverket. Web/API liveness: intern /health; API readiness: intern /ready. Readiness kontrollerar databas och tabeller. Upload-volymen är förberedd, men uppladdning är ännu inte implementerad.
 
 `docker compose -f docker-compose.dev.yml up --build` är ett kompatibelt alternativ som inkluderar samma stack; det är inte en separat hot-reload-miljö.
 
@@ -54,7 +54,7 @@ docker compose up -d --build --wait
 
 Migreringsservicen körs före API-start. Den första journalförda migrationen kan både skapa en tom databas och ta över det ursprungliga init-SQL-schemat från fordonsbranchen utan att radera data. Om migrationen misslyckas startar inte API:t; läs `docker compose logs migrate` och åtgärda orsaken innan nytt försök. Kör inte manuell journalmarkering för okända schemaavvikelser.
 
-POSTGRES_USER/PASSWORD/DB måste motsvara en befintlig volyms konfiguration. Att ändra .env ändrar inte lösenord i en redan initierad databas. Den nya Compose-filen bygger DATABASE_URL av dessa tre värden; en äldre fristående DATABASE_URL i .env används inte av Compose.
+POSTGRES_USER/PASSWORD/DB måste motsvara en befintlig volyms konfiguration. Att ändra Compose ändrar inte lösenord i en redan initierad databas. Vid uppgradering från .env: för över dina befintliga värden till både DB-konfigurationen och API:ts DATABASE_URL i Compose innan start. Gamla .env-värden används inte längre av Compose.
 
 Full backup omfattar PostgreSQL, uploads och konfiguration/version. Ett komplett dokumenterat restore-flöde återstår.
 
@@ -71,7 +71,7 @@ pnpm exec playwright install chromium
 pnpm test:e2e
 ```
 
-`pnpm test` kör API-/databastester med PGlite utan separat server. `pnpm test:e2e` startar Vite och testar desktop/mobil med kontrollerade API-svar. Sätt `E2E_BASE_URL=http://localhost:3000` för samma registreringsflöde mot en riktig Compose-stack. CI kör dessutom PostgreSQL 17, omstart och uppgradering.
+`pnpm test` kör API-/databastester med PGlite utan separat server. `pnpm test:e2e` startar Vite och testar desktop/mobil med kontrollerade API-svar. Sätt `E2E_BASE_URL=http://localhost:3080` för samma registreringsflöde mot en riktig Compose-stack. CI kör dessutom PostgreSQL 17, omstart och uppgradering.
 
 För `pnpm dev` behövs en nåbar PostgreSQL-instans. Exportera DATABASE_URL i API-processens miljö (en .env-fil laddas inte automatiskt), kör `pnpm --filter @milspar/api db:migrate`, och starta sedan `pnpm dev`. Vite skickar /api till localhost:3001. Compose-databasen publicerar ingen hostport; använd en separat lokal utvecklingsdatabas eller en uttrycklig lokal Compose-override.
 
@@ -84,3 +84,7 @@ Redigera `apps/api/src/db/schema.ts`, kör `pnpm --filter @milspar/api db:genera
 Läs `docs/PRODUCT-SPEC.md`, `docs/DATA-MODEL.md`, `docs/ROADMAP.md` och `docs/adr/`.
 
 **Design System v1.0 är LOCKED.** Följ `docs/design/DESIGN-SYSTEM.md` och `docs/design/UI-SPEC.md`; ändra inte grafisk profil som en del av en teknisk rättning.
+
+## Framtida releaser
+
+En release ska kunna installeras med endast en Compose-fil och färdigpublicerade images, utan Git, källkod eller .env. Se [releasekraven](docs/RELEASE-CHECKLIST.md). Den aktuella branchen bygger fortfarande från källkod och är ännu inte en sådan paketerad release.
