@@ -1,0 +1,2 @@
+ALTER TABLE "maintenance_rules" ADD COLUMN "origin_event_id" uuid;--> statement-breakpoint
+ALTER TABLE "maintenance_rules" ADD CONSTRAINT "maintenance_rules_origin_event_id_events_id_fk" FOREIGN KEY ("origin_event_id") REFERENCES "public"."events"("id") ON DELETE no action ON UPDATE no action;

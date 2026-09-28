@@ -1,6 +1,6 @@
 # Milspår — installation
 
-Denna förhandsrelease innehåller fordonsöversikt och registrering. Service/tidslinje och inloggning återstår. Använd en privat testmiljö.
+Denna förhandsrelease innehåller fordonsredigering, servicebok/tidslinje, manuella mätarställningar, bilder/PDF, sommar-/vinterhjul och återkommande underhåll. Inloggning och live-integrationer återstår. Använd en privat testmiljö.
 
 ## Första start
 
@@ -20,11 +20,13 @@ All konfiguration finns i Compose-filen. DB är intern. Om databaslösenord änd
 
 Behåll samma katalog och Compose-projektnamn så att befintliga volymer återanvänds. Från den tidigare Git-installationen: kör fortfarande från katalogen app, eller ange samma projektnamn med `-p app`. Kör inte två installationer samtidigt mot samma datavolym.
 
-Ta backup före uppgradering och behåll en kopia av gamla Compose-filen. Databasbackup:
+Ta backup före uppgradering och behåll en kopia av gamla Compose-filen. Stoppa webb/API så att databas och filer inte ändras under backup. Följande kommandon är avsedda för Linux-terminalen:
 
 ```sh
+docker compose stop web api
 docker compose exec -T db sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc -f /tmp/milspar.dump'
 docker compose cp db:/tmp/milspar.dump ./milspar.dump
+docker compose run --rm --no-deps -T api tar -C /data/uploads -cf - . > uploads.tar
 docker compose down
 ```
 
@@ -39,18 +41,27 @@ Använd aldrig `down -v` vid uppgradering: det tar bort datavolymerna. Migrering
 
 ## Återställning
 
-Stoppa appen innan data återställs. Spara även uploads-volymen om den innehåller filer. Återställ till en separat installation för kontroll innan befintliga data ersätts.
+Återställ till en separat installation med nytt projektnamn och tomma volymer för kontroll innan befintliga data ersätts. Kopiera rätt Compose-version, milspar.dump och uploads.tar till den katalogen. Anpassa webbporten om den ordinarie installationen körs samtidigt. Databasdumpen och filarkivet måste komma från samma backup.
 
-Med samma databasuppgifter som backupen och endast DB startad:
+Med samma databasuppgifter som backupen och endast DB startad (nedan används det separata projektnamnet milspar-restore):
 
 ```sh
-docker compose up -d db --wait
-docker compose cp ./milspar.dump db:/tmp/milspar.dump
-docker compose exec -T db sh -c 'pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB" --clean --if-exists /tmp/milspar.dump'
-docker compose up -d --wait
+docker compose -p milspar-restore up -d db --wait
+docker compose -p milspar-restore cp ./milspar.dump db:/tmp/milspar.dump
+docker compose -p milspar-restore exec -T db sh -c 'pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB" --exit-on-error /tmp/milspar.dump'
+docker compose -p milspar-restore run --rm --no-deps -T api tar -C /data/uploads -xf - < uploads.tar
+docker compose -p milspar-restore up -d --wait
 ```
 
-Återställning ersätter innehållet i mål-DB. Kör den bara mot den avsedda återställningsinstallationen. Migrera framåt med samma eller kompatibel appversion; anta inte att ett äldre schema stöder en nedgradering.
+Kommandona kräver en tom mål-DB; de är inte avsedda att slå samman installationer. Kontrollera fordonsdata, servicehistorik, profilbilder och nedladdning av original. Migrera framåt med samma eller kompatibel appversion; anta inte att ett äldre schema stöder en nedgradering. CI testar återställning av både databas och originalfiler.
+
+## Hjul, underhåll och borttagning
+
+Lägg till en fälguppsättning under Däck, sedan en däckomgång. Registrera hjulbyten med datum och helst km; ofullständiga värden ger ingen påhittad körsträcka. Nya däck på samma fälgar läggs till som ny omgång. Korrigera hjulbytet i tidslinjen för att ändra monteringshistoriken.
+
+Återkommande underhåll skapar nästa regel när det markeras genomfört. Om den avslutande händelsen korrigeras måste omräkning bekräftas; borttagning öppnar den tidigare regeln igen och tar bort nästa väntande regel. Senare genomförda åtgärder behöver korrigeras först.
+
+Borttagna poster/original bevaras i databasen och uploads för spårbarhet; detta är inte permanent radering. Det finns ännu ingen papperskorg/återställningsvy. Bilder kan väljas som profilbild i Galleri. Bilagor kan kopplas till en händelse åt gången eller endast till fordonet.
 
 ## Felsökning
 

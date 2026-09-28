@@ -3,6 +3,19 @@ import type { FastifyInstance } from "fastify";
 import { isUniqueViolation, vehicleService } from "../services/vehicles.js";
 
 export async function vehicleRoutes(app: FastifyInstance) {
+  app.delete<{ Params: { id: string } }>("/vehicles/:id", async (request, reply) => {
+    const parsed = vehicleIdSchema.safeParse(request.params.id);
+    if (!parsed.success) return reply.code(400).send({ error: "invalid_vehicle_id" });
+    if (!await vehicleService.remove(parsed.data)) return reply.code(404).send({ error: "vehicle_not_found" });
+    return reply.code(204).send();
+  });
+  app.delete<{ Params: { id: string; readingId: string } }>("/vehicles/:id/odometer-readings/:readingId", async (request, reply) => {
+    const vehicleId = vehicleIdSchema.safeParse(request.params.id);
+    const readingId = vehicleIdSchema.safeParse(request.params.readingId);
+    if (!vehicleId.success || !readingId.success) return reply.code(400).send({ error: "invalid_id" });
+    if (!await vehicleService.removeReading(vehicleId.data, readingId.data)) return reply.code(404).send({ error: "reading_not_found" });
+    return reply.code(204).send();
+  });
   app.get("/vehicles", () => vehicleService.list());
   app.post("/vehicles", async (request, reply) => {
     const parsed = createVehicleSchema.safeParse(request.body);

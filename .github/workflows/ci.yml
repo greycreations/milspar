@@ -33,6 +33,8 @@ jobs:
         run: pnpm test:e2e
         env:
           E2E_BASE_URL: http://127.0.0.1:3080
+      - name: Restore database and original files into a separate installation
+        run: bash scripts/verify-restore.sh
       - name: Check persistence across container recreation
         run: |
           node tests/smoke.mjs create

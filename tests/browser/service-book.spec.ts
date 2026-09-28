@@ -1,0 +1,97 @@
+import { test, expect } from "@playwright/test";
+import { randomUUID } from "node:crypto";
+
+test.skip(!process.env.E2E_BASE_URL, "Full service book flows run against the real Compose API and PostgreSQL.");
+test("manual service book, attachments, seasonal wheels and maintenance work together", async ({ page, request }, testInfo) => {
+  test.setTimeout(90000);
+  const registration = `B${randomUUID().slice(0, 8)}`.toUpperCase();
+  const created = await request.post("/api/v1/vehicles", { data: { registrationNumber: registration, make: "Volkswagen", model: "ID.7" } });
+  expect(created.status()).toBe(201);
+  const id = (await created.json()).id;
+  await page.goto(`/#vehicles/${id}`);
+  await page.getByRole("button", { name: "Redigera fordon", exact: true }).click();
+  let dialog = page.getByRole("dialog");
+  await dialog.getByLabel("Färg", { exact: true }).fill("Blå");
+  await dialog.getByRole("button", { name: "Spara", exact: true }).click();
+  await expect(dialog).not.toBeVisible(); await expect(page.getByText("Blå", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Service", exact: true }).click();
+  dialog = page.getByRole("dialog");
+  await dialog.getByLabel("Rubrik").fill("Årsservice test");
+  await dialog.getByLabel("Datum och tid").fill("2025-02-01T12:00");
+  await dialog.getByLabel("Mätarställning (km)", { exact: true }).fill("1000");
+  await dialog.getByLabel("Verkstad / leverantör").fill("Min verkstad");
+  await dialog.getByLabel("Utförda åtgärder").fill("Kupéfilter\nBromskontroll");
+  await dialog.getByLabel("Kostnad", { exact: false }).fill("1250,50");
+  await dialog.getByRole("button", { name: "Spara", exact: true }).click();
+  await expect(dialog).not.toBeVisible();
+  await expect(page.locator(".kpi-value").first()).toContainText("1 000");
+  await page.getByRole("link", { name: "Tidslinje", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Årsservice test" })).toBeVisible();
+  await expect(page.getByText("Kupéfilter", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Redigera Årsservice test", exact: true }).click();
+  await page.getByRole("dialog").getByLabel("Anteckningar", { exact: true }).fill("Kontrollerat");
+  await page.getByRole("dialog").getByRole("button", { name: "Spara", exact: true }).click();
+  await expect(page.getByRole("dialog")).not.toBeVisible();
+  await page.getByRole("navigation", { name: "Fordonsnavigation" }).getByRole("link", { name: "Dokument", exact: true }).click();
+  await page.getByLabel("Koppla uppladdning till").selectOption({ label: (await page.locator('.upload-controls select option').allTextContents()).find(v => v.includes("Årsservice test"))! });
+  await page.getByLabel("Välj fil").setInputFiles({ name: "servicekvitto.pdf", mimeType: "application/pdf", buffer: Buffer.from("%PDF-1.4\n%%EOF") });
+  await expect(page.getByRole("heading", { name: "servicekvitto.pdf" })).toBeVisible();
+  const downloadResponse = await request.get(await page.getByRole("link", { name: "Ladda ner original" }).getAttribute("href") ?? "");
+  expect(downloadResponse.status()).toBe(200); expect((await downloadResponse.body()).toString()).toContain("%PDF-1.4");
+  await page.getByRole("navigation", { name: "Fordonsnavigation" }).getByRole("link", { name: "Däck", exact: true }).click();
+  for (const [name, season, make] of [["Sommar 19", "summer", "Michelin"], ["Vinter 18", "winter", "Nokian"]]) {
+    await page.getByRole("button", { name: "Ny uppsättning", exact: true }).click();
+    dialog = page.getByRole("dialog");
+    await dialog.getByLabel("Uppsättningens namn").fill(name!);
+    await dialog.getByLabel("Säsong").selectOption(season!);
+    await dialog.getByLabel("Fälgfärg").fill("Svart");
+    await dialog.getByRole("button", { name: "Spara", exact: true }).click();
+    await expect(dialog).not.toBeVisible();
+    const card = page.locator("article").filter({ has: page.getByRole("heading", { name: name!, exact: true }) });
+    await card.getByRole("button", { name: "Ny däckomgång", exact: true }).click();
+    dialog = page.getByRole("dialog");
+    await dialog.getByLabel("Däckfabrikat").fill(make!); await dialog.getByLabel("Däckmodell").fill("Testmodell");
+    await dialog.getByLabel("Införskaffningsdatum").fill("2025-01-01");
+    await dialog.getByRole("button", { name: "Spara", exact: true }).click();
+    await expect(dialog).not.toBeVisible();
+  }
+  for (const [name, date, km] of [["Sommar 19", "2025-04-01T12:00", "2000"], ["Vinter 18", "2025-11-01T12:00", "8000"], ["Sommar 19", "2026-04-01T12:00", "12000"]]) {
+    await page.getByRole("button", { name: "Registrera hjulbyte", exact: true }).click();
+    dialog = page.getByRole("dialog");
+    await dialog.getByLabel("Datum och tid").fill(date!); await dialog.getByLabel("Mätarställning (km)", { exact: true }).fill(km!);
+    const option = (await dialog.locator('select[name="wheelBatchId"] option').allTextContents()).find(v => v.startsWith(name!))!;
+    await dialog.getByLabel("Montera hjuluppsättning").selectOption({ label: option });
+    await dialog.getByRole("button", { name: "Spara", exact: true }).click(); await expect(dialog).not.toBeVisible();
+  }
+  await expect(page.getByText("Monterat: Sommar 19", { exact: true })).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath("seasonal-wheels.png"), fullPage: true });
+  await page.getByRole("navigation", { name: "Fordonsnavigation" }).getByRole("link", { name: "Underhåll", exact: true }).click();
+  await page.getByRole("button", { name: "Planera underhåll", exact: true }).click();
+  dialog = page.getByRole("dialog");
+  await dialog.getByLabel("Åtgärd", { exact: true }).fill("Nästa service");
+  await dialog.getByLabel("Senast datum").fill("2026-07-01");
+  await dialog.getByLabel("Senast mätarställning").fill("15000");
+  await dialog.getByLabel("Återkommande intervall (km)").fill("15000");
+  await dialog.getByRole("button", { name: "Spara", exact: true }).click(); await expect(dialog).not.toBeVisible();
+  await page.getByRole("button", { name: "Markera genomförd", exact: true }).click();
+  dialog = page.getByRole("dialog");
+  await dialog.getByLabel("Datum och tid").fill("2026-07-01T12:00");
+  await dialog.getByLabel("Mätarställning (km)", { exact: true }).fill("15000");
+  await dialog.getByRole("button", { name: "Spara", exact: true }).click(); await expect(dialog).not.toBeVisible();
+  await expect(page.getByText("Genomförd", { exact: true })).toBeVisible();
+  await page.reload();
+  await expect(page.getByText(/30 000 km/)).toBeVisible();
+  await page.getByRole("link", { name: "Alla fordon" }).click();
+  await expect(page.locator(".overview-row").filter({ hasText: registration }).first()).toBeVisible();
+});
+
+test("simultaneous wheel changes are serialized by PostgreSQL", async ({ request }) => {
+  const registration = `C${randomUUID().slice(0, 8)}`;
+  const id = (await (await request.post("/api/v1/vehicles", { data: { registrationNumber: registration, make: "Saab", model: "900" } })).json()).id;
+  const root = `/api/v1/vehicles/${id}`;
+  const set = (await (await request.post(`${root}/wheel-sets`, { data: { name: "Sommar", season: "summer" } })).json()).id;
+  const batch = (await (await request.post(`${root}/tire-batches`, { data: { wheelSetId: set, make: "Michelin", model: "Test" } })).json()).id;
+  const data = { type: "wheel_change", title: "Byte", occurredAt: "2025-04-01T12:00:00Z", wheelBatchId: batch, odometerKm: 1000 };
+  const responses = await Promise.all([request.post(`${root}/events`, { data }), request.post(`${root}/events`, { data })]);
+  expect(responses.map(r => r.status()).sort()).toEqual([201, 409]);
+});

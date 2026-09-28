@@ -8,6 +8,27 @@
       "when": 1790609593930,
       "tag": "0000_vehicle_foundation",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790620666368,
+      "tag": "0001_soft_deletion",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790625368646,
+      "tag": "0002_service_book",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1790626108397,
+      "tag": "0003_maintenance_links",
+      "breakpoints": true
     }
   ]
 }

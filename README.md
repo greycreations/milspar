@@ -6,15 +6,20 @@ En självhostad digital servicebok för flera fordon, med mobile-first registrer
 
 ## Nuvarande funktioner
 
-Skapa och lista fordon med valfri första mätarställning. API kan även hämta ett fordon. Fordon och avläsning sparas atomiskt i PostgreSQL. UI visar laddningsfel med återförsök och begripliga sparfel.
+- Fordonsregister med redigering, profilbild och bekräftad borttagning.
+- Manuella mätarställningar, anteckningar, service, reparationer och verkstadsbesök i en gemensam redigerbar tidslinje.
+- Åtgärder, verkstad och kostnad per händelse; valutor hålls separata. Avvikande mätarvärden kräver bekräftelse.
+- Sommar-/vinterhjul med fälgdata och separata däckomgångar, datum/kilometer för byten och härledd monteringshistorik/körsträcka.
+- Bilder/PDF, bevarade original, bildpreview och manuell koppling till händelse eller fordon. JPEG/PNG/WebP/PDF, högst 20 MB (bilder högst 40 megapixlar).
+- Underhåll efter datum/km, återkommande intervall, genomförda åtgärder och verklig dashboard.
 
-Service, tidslinje, fordonssida, dokument, bilder, däck, kostnader och inloggning är kommande funktioner. Dashboardens Att göra/Senaste och övrig navigation är fortfarande platshållare.
+Borttagning är spårbar: poster och original bevaras i arkivet men döljs från aktiva vyer. Återställning av enskilda poster via UI, automatisk dokumenttolkning, live-integrationer och inloggning återstår. HEIC exporteras till JPEG före uppladdning. Se docs/INTEGRATION-CONCEPT.md för framtida märkesadaptrar; manuell användning kräver ingen integration.
 
 ## Provstart med Docker
 
 Krav: Docker Engine/Desktop och Docker Compose **2.20+**.
 
-1. Ladda ner [docker-compose.yml för v0.1.0-preview.1](https://github.com/greycreations/milspar/releases/download/v0.1.0-preview.1/docker-compose.yml) till en egen katalog. Ingen Git-kloning eller källkod behövs. Förhandsreleasen stöder Linux amd64 (vanliga Intel/AMD-servrar).
+1. Ladda ner [docker-compose.yml för v0.1.0-preview.5](https://github.com/greycreations/milspar/releases/download/v0.1.0-preview.5/docker-compose.yml) till en egen katalog. Ingen Git-kloning eller källkod behövs. Förhandsreleasen stöder Linux amd64 (vanliga Intel/AMD-servrar).
 2. Inställningarna finns direkt i `docker-compose.yml`; ingen `.env` behövs. Standardporten är 3080. Om du ändrar databaslösenord, ändra både DATABASE_URL och POSTGRES_PASSWORD till samma URL-säkra lösenord.
 3. Kör:
 
@@ -33,7 +38,7 @@ docker compose stop
 docker compose start
 ```
 
-Webben publicerar port 3080 (eller vald port i Compose). API och PostgreSQL är endast åtkomliga inom Compose-nätverket. Web/API liveness: intern /health; API readiness: intern /ready. Readiness kontrollerar databas och tabeller. Upload-volymen är förberedd, men uppladdning är ännu inte implementerad.
+Webben publicerar port 3080 (eller vald port i Compose). API och PostgreSQL är endast åtkomliga inom Compose-nätverket. Web/API liveness: intern /health; API readiness: intern /ready. Readiness kontrollerar databas och tabeller. Upload-volymen bevarar originalfiler och bildpreviews mellan omstarter och uppgraderingar.
 
 För utveckling från klonad källkod: `docker compose -f docker-compose.dev.yml up -d --build --wait`. Den filen bygger lokala images; den är inte en hot-reload-miljö. Rootens Compose-fil använder publicerade images låsta med version och digest.
 
@@ -41,11 +46,10 @@ För utveckling från klonad källkod: `docker compose -f docker-compose.dev.yml
 
 Behåll samma katalog/Compose-projektnamn som tidigare. Standardnamngivna volymer är projektspecifika. Om katalogen byts, använd samma `-p PROJEKTNAMN` på alla kommandon.
 
-Ta backup av databasen och eventuella filer före uppgradering. Exempel på databasdump:
+Ta en sammanhängande backup av databas och uploads enligt [installationsanvisningarna](release/INSTALL.md). Ersätt sedan Compose-filen med den nya versionen och för över dina befintliga inställningar (port och databasvärden) innan start.
 
 ```sh
-docker compose exec -T db sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc -f /tmp/milspar.dump'
-docker compose cp db:/tmp/milspar.dump ./milspar.dump
+docker compose pull
 docker compose down
 docker compose up -d --wait
 ```
@@ -87,4 +91,4 @@ Läs `docs/PRODUCT-SPEC.md`, `docs/DATA-MODEL.md`, `docs/ROADMAP.md` och `docs/a
 
 ## Framtida releaser
 
-En release ska kunna installeras med endast en Compose-fil och färdigpublicerade images, utan Git, källkod eller .env. Se [releasekraven](docs/RELEASE-CHECKLIST.md). Publiceringsflödet i `.github/workflows/release.yml` bygger och publicerar images, genererar en versions- och digestlåst Compose-fil och verifierar anonym nedladdning, start, browserflöden, portbyte, beständighet och uppgradering från det ursprungliga schemat innan GitHub-releasen skapas.
+En release ska kunna installeras med endast en Compose-fil och färdigpublicerade images, utan Git, källkod eller .env. Se [releasekraven](docs/RELEASE-CHECKLIST.md). Publiceringsflödet i `.github/workflows/release.yml` bygger och publicerar images, genererar en versions- och digestlåst Compose-fil och verifierar anonym nedladdning, start, browserflöden, portbyte, beständighet och uppgradering från det ursprungliga schemat samt den installerade releasen innan GitHub-releasen skapas.

@@ -123,12 +123,14 @@ jobs:
           INSTALL_DIR: ${{ runner.temp }}/install
         run: |
           node tests/smoke.mjs create
+          node tests/service-book-smoke.mjs create
           cd "$INSTALL_DIR"
           docker compose down
           sed -i 's/3080:80/3081:80/' docker-compose.yml
           docker compose up -d --wait
           cd "$GITHUB_WORKSPACE"
           SMOKE_BASE_URL=http://127.0.0.1:3081 node tests/smoke.mjs verify
+          SMOKE_BASE_URL=http://127.0.0.1:3081 node tests/service-book-smoke.mjs verify
       - name: Verify upgrade from original schema
         env:
           INSTALL_DIR: ${{ runner.temp }}/install
@@ -141,6 +143,24 @@ jobs:
           docker compose -p legacy up -d --wait
           cd "$GITHUB_WORKSPACE"
           SMOKE_BASE_URL=http://127.0.0.1:3081 node tests/smoke.mjs legacy
+      - name: Verify upgrade from the installed release
+        env:
+          INSTALL_DIR: ${{ runner.temp }}/install
+        run: |
+          cd "$INSTALL_DIR"
+          docker compose -p legacy down
+          mkdir "$RUNNER_TEMP/previous-release"
+          cd "$RUNNER_TEMP/previous-release"
+          # Root Compose pins the currently supported release, not locally built images.
+          cp "$GITHUB_WORKSPACE/docker-compose.yml" docker-compose.yml
+          export DOCKER_CONFIG="$(mktemp -d)"
+          docker compose -p upgrade up -d --wait
+          node "$GITHUB_WORKSPACE/tests/smoke.mjs" create
+          docker compose -p upgrade down
+          cp "$INSTALL_DIR/docker-compose.yml" docker-compose.yml
+          docker compose -p upgrade up -d --wait
+          SMOKE_BASE_URL=http://127.0.0.1:3081 node "$GITHUB_WORKSPACE/tests/smoke.mjs" verify
+          docker compose -p upgrade down
       - name: Diagnostics
         if: always()
         working-directory: ${{ runner.temp }}/install
