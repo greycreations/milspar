@@ -1,4 +1,4 @@
-import type { CreateVehicle } from "@milspar/contracts";
+import type { CreateVehicle, VehicleDetail } from "@milspar/contracts";
 import { desc, eq, sql } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { odometerReadings, vehicles } from "../db/schema.js";
@@ -37,7 +37,23 @@ export const vehicleService = {
   },
   async get(id: string) {
     const [vehicle] = await db.select().from(vehicles).where(eq(vehicles.id, id)).limit(1);
-    return vehicle;
+    if (!vehicle) return undefined;
+    const readings = await db.select().from(odometerReadings)
+      .where(eq(odometerReadings.vehicleId, id))
+      .orderBy(desc(odometerReadings.recordedAt), desc(odometerReadings.createdAt), desc(odometerReadings.id))
+      .limit(51);
+    return {
+      ...vehicle,
+      createdAt: vehicle.createdAt.toISOString(),
+      updatedAt: vehicle.updatedAt.toISOString(),
+      currentOdometerKm: readings[0]?.valueKm ?? null,
+      coverImageUrl: null,
+      odometerReadings: readings.slice(0, 50).map((reading) => ({
+        id: reading.id, valueKm: reading.valueKm,
+        recordedAt: reading.recordedAt.toISOString(), sourceType: reading.sourceType,
+      })),
+      hasMoreReadings: readings.length > 50,
+    } satisfies VehicleDetail;
   },
 };
 

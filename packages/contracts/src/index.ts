@@ -26,3 +26,21 @@ export const vehicleSummarySchema = z.object({
 
 export type CreateVehicle = z.input<typeof createVehicleSchema>;
 export type VehicleSummary = z.infer<typeof vehicleSummarySchema>;
+
+export const odometerReadingSchema = z.object({
+  id: vehicleIdSchema,
+  valueKm: z.number().int().nonnegative(),
+  recordedAt: z.string().datetime(),
+  sourceType: z.string(),
+});
+
+export const vehicleDetailSchema = vehicleSummarySchema.extend({
+  vin: z.string().nullable(),
+  color: z.string().nullable(),
+  notes: z.string().nullable(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+  odometerReadings: z.array(odometerReadingSchema).max(50),
+  hasMoreReadings: z.boolean(),
+});
+export type VehicleDetail = z.infer<typeof vehicleDetailSchema>;

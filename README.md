@@ -6,9 +6,9 @@ En självhostad digital servicebok för flera fordon, med mobile-first registrer
 
 ## Nuvarande funktioner
 
-Skapa och lista fordon med valfri första mätarställning. API kan även hämta ett fordon. Fordon och avläsning sparas atomiskt i PostgreSQL. UI visar laddningsfel med återförsök och begripliga sparfel.
+Skapa och lista fordon med valfri första mätarställning. Öppna ett fordonskort för fordonsuppgifter, aktuell mätarställning och en tidslinje med de 50 senaste avläsningarna. Fordonsvyer har direktlänkar som fungerar efter omladdning. Fordon och avläsning sparas atomiskt i PostgreSQL. UI visar laddningsfel med återförsök och begripliga sparfel.
 
-Service, tidslinje, fordonssida, dokument, bilder, däck, kostnader och inloggning är kommande funktioner. Dashboardens Att göra/Senaste och övrig navigation är fortfarande platshållare.
+Servicehändelser, registrering av nya avläsningar, dokument, bilder, däck, kostnader och inloggning är kommande funktioner. Dashboardens Att göra/Senaste och övrig navigation är fortfarande platshållare.
 
 ## Provstart med Docker
 
@@ -87,4 +87,4 @@ Läs `docs/PRODUCT-SPEC.md`, `docs/DATA-MODEL.md`, `docs/ROADMAP.md` och `docs/a
 
 ## Framtida releaser
 
-En release ska kunna installeras med endast en Compose-fil och färdigpublicerade images, utan Git, källkod eller .env. Se [releasekraven](docs/RELEASE-CHECKLIST.md). Publiceringsflödet i `.github/workflows/release.yml` bygger och publicerar images, genererar en versions- och digestlåst Compose-fil och verifierar anonym nedladdning, start, browserflöden, portbyte, beständighet och uppgradering från det ursprungliga schemat innan GitHub-releasen skapas.
+En release ska kunna installeras med endast en Compose-fil och färdigpublicerade images, utan Git, källkod eller .env. Se [releasekraven](docs/RELEASE-CHECKLIST.md). Publiceringsflödet i `.github/workflows/release.yml` bygger och publicerar images, genererar en versions- och digestlåst Compose-fil och verifierar anonym nedladdning, start, browserflöden, portbyte, beständighet och uppgradering från det ursprungliga schemat samt den installerade releasen innan GitHub-releasen skapas.

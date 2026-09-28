@@ -16,13 +16,15 @@ Behåll React/Vite/TypeScript, Fastify, PostgreSQL/Drizzle, Zod och pnpm workspa
 
 ## Branch och leverans
 
-PR #1 är squash-mergad till main. PR #2 är kontrollpunkten för feat/vehicle-foundation; den är inte mergad vid dokumentets uppdatering. Kontrollera alltid aktuell head och CI innan fortsatt arbete.
+PR #1 och PR #2 är squash-mergade till main. Nästa slice utvecklas på feat/vehicle-detail. Kontrollera alltid aktuell head och CI innan fortsatt arbete.
 
-Den här uppdateringen stabiliserar PR #2 och inför vanlig Compose-start. Utförda lokala kontroller: typecheck, build, sju API-/databastester med PGlite och sex browserfall (desktop/mobil med kontrollerade API-svar). Docker finns inte i den lokala arbetsmiljön. GitHub-workflow verifierar riktig Compose/PostgreSQL, beständighet och uppgradering; använd dess faktiska status, inte detta dokument, som bevis på containerkörningen.
+Den här uppdateringen inför fordonsöversikt, direktlänkar och läsning av mätarhistorik. Utförda lokala kontroller: typecheck, build, nio API-/databastester med PGlite och tolv browserfall (desktop/mobil med kontrollerade API-svar). Docker finns inte i den lokala arbetsmiljön. GitHub-workflow verifierar riktig Compose/PostgreSQL, beständighet och uppgradering; använd dess faktiska status, inte detta dokument, som bevis på containerkörningen.
 
 ## Vad som finns
 
-- Skapa/lista fordon, API för att hämta ett fordon.
+- Skapa/lista fordon och öppna fordonsöversikt via klickbart kort eller direktlänk.
+- Detaljkontrakt med VIN, färg, aktuellt mätarvärde och högst 50 senaste avläsningar (äldre data bevaras).
+- Läsbar mätartidslinje, ärliga tomlägen och återförsök. Desktop-sidebar, tabletmeny och mobilnavigation.
 - Valfri initial mätarställning och korrekt härledd mätarvisning.
 - Gemensam transaktion för fordon och första avläsning.
 - Zod-input/UUID-validering, separat 409 vid unikhetskonflikt och generiskt serverfel för övriga fel.
@@ -35,15 +37,15 @@ Fysiska tabeller: vehicles och odometer_readings. Mätarvärden är heltal i km,
 
 ## Vad som återstår
 
-Fordonssida/routning, profilbild/StorageProvider, redigering, separat mätarregistrering, Event/tidslinje, service, underhåll, kostnader, dokument, galleri, däck, inkorg/extraction, sök och auth. Att göra/Senaste och flera navigationslänkar är placeholders.
+Profilbild/StorageProvider, redigering, separat mätarregistrering, gemensam Event-modell och full tidslinje, service, underhåll, kostnader, dokument, galleri, däck, inkorg/extraction, sök och auth. Att göra/Senaste och flera navigationslänkar är placeholders.
 
-Designens exakta tablet-/mobilbrytpunkter är ännu inte fullt genomförda i det ursprungliga dashboard-skalet. Ändra inte designkontraktet för att legitimera detta.
+Fordonsvyn följer brytpunkterna <768, 768–1199 och >=1200 px. Design System v1.0 är fortsatt låst.
 
 ## Exakt nästa steg
 
-1. Kontrollera PR #2 och CI. Åtgärda eventuella fel i Compose-start/legacy-upgrade innan grunden kallas verifierad.
+1. Kontrollera aktuell fordonsvy-PR och CI. Åtgärda eventuella fel i Compose-start/legacy-upgrade innan grunden kallas verifierad.
 2. Låt PR vara kontrollpunkt; merge först på användarens aktuella instruktion.
-3. Bygg riktig fordonssida: routning/direktlänk, detaljkontrakt inklusive mätarvärde, fordonsheader, sekundär navigation, ärliga tomma KPI-lägen och responsive regler.
+3. Fordonssida och läsning av mätarhistorik är implementerade; nästa användarflöde är registrering av nya avläsningar med avvikelsehantering och gemensam Event-koppling.
 4. Lägg till cover via lokal StorageProvider och MediaAsset: original, hash, metadata och separat preview.
 5. Bygg gemensam Event-modell och första manuella antecknings-/mätarflöden, därefter service/verkstad/reparation. Testa kronologi, avvikande värden och Vehicle-koppling.
 6. Slutför manuell MVP med dokument, kostnader, underhåll, galleri och backup/restore. AI/däckdjup/TCO/integrationer följer roadmapen senare.

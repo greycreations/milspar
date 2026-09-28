@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { PGlite } from "@electric-sql/pglite";
 import { drizzle } from "drizzle-orm/pglite";
 import { migrate } from "drizzle-orm/pglite/migrator";
+import { vehicleDetailSchema } from "@milspar/contracts";
 
 // Run the same route/service code against PostgreSQL's WASM build locally.
 const state = vi.hoisted(() => ({ database: null as unknown }));
@@ -23,6 +24,25 @@ beforeEach(async () => { await pg.exec("TRUNCATE vehicles CASCADE"); });
 afterAll(async () => { await app.close(); await pg.close(); });
 
 describe("vehicle API and persistence", () => {
+  it("returns chronological, vehicle-scoped detail with matching current reading and bounded history", async () => {
+    const created = await app.inject({ method: "POST", url: "/api/v1/vehicles", payload: { ...payload, currentOdometerKm: undefined, vin: "VIN123456", color: "Blå" } });
+    const id = created.json().id;
+    await app.inject({ method: "POST", url: "/api/v1/vehicles", payload: { ...payload, registrationNumber: "OTHER", currentOdometerKm: 999999 } });
+    await pg.query("INSERT INTO odometer_readings (vehicle_id, value_km, recorded_at) SELECT $1, n, '2025-01-01'::timestamptz + n * interval '1 day' FROM generate_series(0, 50) n", [id]);
+    // Most recently recorded, not highest numeric value, determines the displayed reading.
+    await pg.query("INSERT INTO odometer_readings (vehicle_id, value_km, recorded_at) VALUES ($1, 0, '2026-01-01')", [id]);
+    const detail = vehicleDetailSchema.parse((await app.inject(`/api/v1/vehicles/${id}`)).json());
+    expect(detail).toMatchObject({ vin: "VIN123456", color: "Blå", currentOdometerKm: 0, hasMoreReadings: true });
+    expect(detail.odometerReadings).toHaveLength(50);
+    expect(detail.odometerReadings.slice(0, 3).map(r => r.valueKm)).toEqual([0, 50, 49]);
+    const list = (await app.inject("/api/v1/vehicles")).json();
+    expect(list.find((v: { id: string }) => v.id === id).currentOdometerKm).toBe(detail.currentOdometerKm);
+  });
+  it("returns explicit nulls and empty history when no reading exists", async () => {
+    const created = await app.inject({ method: "POST", url: "/api/v1/vehicles", payload: { registrationNumber: "EMPTY", make: "Saab", model: "900" } });
+    const detail = vehicleDetailSchema.parse((await app.inject(`/api/v1/vehicles/${created.json().id}`)).json());
+    expect(detail).toMatchObject({ currentOdometerKm: null, odometerReadings: [], hasMoreReadings: false, vin: null, color: null });
+  });
   it("creates, lists and retrieves a vehicle with a historical odometer reading", async () => {
     const created = await app.inject({ method: "POST", url: "/api/v1/vehicles", payload });
     expect(created.statusCode).toBe(201);
