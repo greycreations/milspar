@@ -15,6 +15,7 @@ export const eventInputSchema = z.object({
   confirmOdometer: z.boolean().default(false),
   confirmSchedule: z.boolean().default(false),
   revision: z.number().int().positive().optional(),
+  requestId: z.string().uuid().optional(),
 }).refine(v => v.type !== "odometer" || v.odometerKm !== null, { message: "Mätarställning krävs", path: ["odometerKm"] });
 export type EventInput = z.infer<typeof eventInputSchema>;
 export type BookEvent = EventInput & { id: string; vehicleId: string; revision: number; anomaly: boolean; createdAt: string };

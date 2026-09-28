@@ -50,6 +50,14 @@ it("requires explicit mileage anomaly confirmation, checks both neighbours and k
   expect((await call(id, "events", "POST", event({ type: "odometer", odometerKm: 0, occurredAt: "2024-01-01T12:00:00.000Z" }))).statusCode).toBe(201);
   expect((await call(id, "events", "POST", event({ occurredAt: "2200-01-01T00:00:00Z" }))).statusCode).toBe(400);
 });
+it("does not duplicate a manual event when a saved request is retried", async () => {
+  const id = await vehicle(), input = event({ requestId: randomUUID() });
+  const first = await call(id, "events", "POST", input), retry = await call(id, "events", "POST", input);
+  expect(first.statusCode).toBe(201); expect(retry.statusCode).toBe(201);
+  expect(retry.json().id).toBe(first.json().id);
+  expect((await book(id)).events).toHaveLength(1);
+  expect((await call(id, "events", "POST", { ...input, title: "Different" })).statusCode).toBe(409);
+});
 it("validates input and isolates vehicles, batches, events and deletion", async () => {
   const id = await vehicle(), other = await vehicle("OTHER");
   const eid = (await call(id, "events", "POST", event())).json().id;

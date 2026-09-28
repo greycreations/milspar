@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, CarFront, Gauge, Plus, Pencil, Trash2 } from "lucide-react";
 import { vehicleDetailSchema, vehicleIdSchema, type VehicleDetail, type ServiceBook, type BookEvent, type WheelSet, type TireBatch, type MaintenanceRule, type Asset } from "@milspar/contracts";
 import { DeleteConfirmation } from "./DeleteConfirmation";
-import { api, API, Editor, type Field, formatKm, formatDate, localTime, money, eventNames, seasonNames, statusNames } from "./book-ui";
+import { api, API, Editor, type Field, formatKm, formatDate, localTime, money, eventNames, seasonNames, statusNames, newRequestId } from "./book-ui";
 
 type EditorState = { title: string; fields: Field[]; initial: Record<string, unknown>; save: (data: Record<string, unknown>) => Promise<unknown> };
 const text = (name: string, label: string, required = false): Field => ({ name, label, required });
@@ -50,6 +50,7 @@ export function VehiclePage({ id, section, onChanged }: { id: string; section: s
   }
   function editEvent(type: string, entry?: BookEvent, completion?: MaintenanceRule) {
     const wheel = type === "wheel_change";
+    const requestId = entry ? undefined : newRequestId();
     const fields: Field[] = [text("title", "Rubrik", true), { name: "occurredAt", label: "Datum och tid", type: "datetime-local", required: true }, { ...numeric("odometerKm", "Mätarställning (km)"), required: type === "odometer" }];
     if (wheel) fields.push({ name: "wheelBatchId", label: "Montera hjuluppsättning / däckomgång", type: "select", nullEmpty: true, options: [{ value: "", label: "Enbart demontering" }, ...book.tireBatches.map(b => ({ value: b.id, label: `${book.wheelSets.find(s => s.id === b.wheelSetId)?.name} · ${b.make} ${b.model}${b.acquiredOn ? ` · ${b.acquiredOn}` : ""}` }))], help: "Bytet avslutar föregående montering vid vald tidpunkt. Bakdatering och ändringar räknar om efterföljande perioder." });
     if (["service", "repair", "workshop", "wheel_change"].includes(type)) fields.push(text("vendor", "Verkstad / leverantör"), textarea("itemsText", "Utförda åtgärder (en per rad)"), amount, { name: "currency", label: "Valuta", type: "select", options: ["SEK", "EUR", "NOK", "DKK"].map(value => ({ value, label: value })) });
@@ -57,7 +58,7 @@ export function VehiclePage({ id, section, onChanged }: { id: string; section: s
     if (entry) fields.push({ name: "confirmSchedule", label: "Jag godkänner att nästa underhåll räknas om från ändringen", type: "checkbox" });
     setEditor({ title: completion ? "Registrera genomförd åtgärd" : `${entry ? "Redigera" : "Lägg till"} ${eventNames[type]?.toLowerCase()}`, fields,
       initial: { title: completion?.title ?? eventNames[type], currency: "SEK", ...entry, occurredAt: localTime(entry?.occurredAt), itemsText: entry?.items.join("\n") ?? "", costMinor: entry?.costMinor == null ? "" : (entry.costMinor / 100).toFixed(2), confirmOdometer: false, confirmSchedule: false },
-      save: data => api(completion ? `${path}/maintenance/${completion.id}/complete` : `${path}/events${entry ? `/${entry.id}` : ""}`, entry ? "PUT" : "POST", { ...data, type, items: String(data.itemsText ?? "").split("\n").map(s => s.trim()).filter(Boolean), revision: completion?.revision ?? entry?.revision }),
+      save: data => api(completion ? `${path}/maintenance/${completion.id}/complete` : `${path}/events${entry ? `/${entry.id}` : ""}`, entry ? "PUT" : "POST", { ...data, type, requestId, items: String(data.itemsText ?? "").split("\n").map(s => s.trim()).filter(Boolean), revision: completion?.revision ?? entry?.revision }),
     });
   }
   function editSet(set?: WheelSet) {

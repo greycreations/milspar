@@ -1,6 +1,13 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 
 export const API = import.meta.env.VITE_API_URL ?? "/api/v1";
+// getRandomValues also works on a private HTTP/LAN installation (randomUUID may not).
+export function newRequestId() {
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  bytes[6] = (bytes[6]! & 15) | 64; bytes[8] = (bytes[8]! & 63) | 128;
+  const value = [...bytes].map(b => b.toString(16).padStart(2, "0")).join("");
+  return `${value.slice(0, 8)}-${value.slice(8, 12)}-${value.slice(12, 16)}-${value.slice(16, 20)}-${value.slice(20)}`;
+}
 export async function api<T = unknown>(path: string, method = "GET", body?: unknown): Promise<T> {
   const response = await fetch(`${API}${path}`, { method, ...(body !== undefined ? { headers: { "content-type": "application/json" }, body: JSON.stringify(body) } : {}) });
   if (!response.ok) {

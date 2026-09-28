@@ -121,6 +121,7 @@ export const bookService = {
       await lockVehicle(tx, vehicleId);
       const [rule] = await tx.select().from(maintenanceRules).where(and(eq(maintenanceRules.id, id), eq(maintenanceRules.vehicleId, vehicleId), isNull(maintenanceRules.deletedAt)));
       if (!rule) throw new DomainError(404, "Underhållsregeln finns inte.");
+      if (rule.completedEventId === input.requestId) return saveEvent(tx, vehicleId, { ...input, revision: undefined });
       if (rule.completedEventId) throw new DomainError(409, "Åtgärden är redan genomförd.");
       requireRevision(input.revision, rule.revision);
       if (!["service", "repair", "workshop"].includes(input.type)) throw new DomainError(400, "Välj service, reparation eller verkstadsbesök.");
@@ -152,11 +153,20 @@ export const bookService = {
 };
 
 async function saveEvent(tx: Transaction, vehicleId: string, input: EventInput, id?: string) {
+  if (!id && input.requestId) {
+    const [existing] = await tx.select().from(events).where(eq(events.id, input.requestId));
+    if (existing) {
+      const { revision: _revision, requestId: _request, ...sent } = input;
+      const { revision: _oldRevision, requestId: _oldRequest, ...stored } = eventInputSchema.parse(existing.data);
+      if (existing.vehicleId !== vehicleId || existing.deletedAt || JSON.stringify(sent) !== JSON.stringify(stored)) throw new DomainError(409, "Den här registreringen har redan behandlats med andra uppgifter. Ladda om och kontrollera historiken.");
+      return { id: existing.id };
+    }
+  }
   if (new Date(input.occurredAt).getTime() > Date.now() + 60000) throw new DomainError(400, "En genomförd händelse kan inte ligga i framtiden. Använd underhåll för planerade åtgärder.");
   const previous = id ? (await tx.select().from(events).where(and(eq(events.id, id), eq(events.vehicleId, vehicleId), isNull(events.deletedAt))))[0] : undefined;
   if (id && !previous) throw new DomainError(404, "Händelsen finns inte.");
   if (previous) requireRevision(input.revision, previous.revision);
-  const candidateId = id ?? randomUUID();
+  const candidateId = id ?? input.requestId ?? randomUUID();
   const others = await tx.select().from(odometerReadings).where(and(eq(odometerReadings.vehicleId, vehicleId), isNull(odometerReadings.deletedAt), or(isNull(odometerReadings.eventId), ne(odometerReadings.eventId, candidateId)))).orderBy(asc(odometerReadings.recordedAt));
   const anomaly = input.odometerKm !== null && others.some(r => r.recordedAt.toISOString() <= input.occurredAt ? r.valueKm > input.odometerKm! : r.valueKm < input.odometerKm!);
   if (anomaly && !input.confirmOdometer) throw new DomainError(409, "Mätarställningen avviker från tidigare eller senare avläsningar. Kontrollera värdet och bekräfta avvikelsen för att spara.", "odometer_conflict");

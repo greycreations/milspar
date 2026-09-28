@@ -1,12 +1,12 @@
 # Nästa samlade leverans — användbar servicebok och hjulhantering
 
-Uppdaterad 2026-09-28. Detta är beslutad plan, inte en lista över färdig funktionalitet. Planen ersätter tidigare prioritering som lade grundläggande däckhantering efter servicebokens MVP. Design System v1.0 och kravet på en enda Compose-fil gäller fortsatt.
+Uppdaterad 2026-09-28. Den beslutade omfattningen nedan är implementerad på feat/vehicle-detail (PR #3). Dockerflöden, datamigrering och återställning av databas och originalfiler har verifierats i CI; slutlig releasepaketering följer efter sista regressionen. Planen ersätter tidigare prioritering som lade grundläggande däckhantering efter servicebokens MVP. Design System v1.0 och kravet på en enda Compose-fil gäller fortsatt.
 
 ## Mål och nuläge
 
 Användaren ska kunna sköta fordonets löpande historik manuellt från telefonen: ändra fordonsuppgifter, registrera service och mätarställning, bifoga kvitto, planera nästa åtgärd och byta mellan sommar- och vinterhjul.
 
-Preview.4 innehåller fordonsregister, fordonsöversikt, läsning av mätarhistorik samt bekräftad borttagning av fordon/avläsningar. Full registrering/redigering, bilagor, underhåll och däckflöden återstår. Befintlig PR #3 är en separat granskningspunkt; kontrollera dess status innan nästa kodarbete. Att publicera en preview betyder inte automatiskt att den är mergad till main.
+Preview.4 innehåller fordonsregister, fordonsöversikt, läsning av mätarhistorik samt bekräftad borttagning av fordon/avläsningar. Den nya implementationen lägger till registrering/redigering, bilagor, underhåll och däckflöden. Befintlig PR #3 är en separat granskningspunkt; kontrollera dess status innan nästa kodarbete. Att publicera en preview betyder inte automatiskt att den är mergad till main.
 
 ## Leveransomfattning
 
