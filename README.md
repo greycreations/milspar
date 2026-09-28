@@ -14,7 +14,7 @@ Servicehändelser, registrering av nya avläsningar, dokument, bilder, däck, ko
 
 Krav: Docker Engine/Desktop och Docker Compose **2.20+**.
 
-1. Ladda ner [docker-compose.yml för v0.1.0-preview.1](https://github.com/greycreations/milspar/releases/download/v0.1.0-preview.1/docker-compose.yml) till en egen katalog. Ingen Git-kloning eller källkod behövs. Förhandsreleasen stöder Linux amd64 (vanliga Intel/AMD-servrar).
+1. Ladda ner [docker-compose.yml för v0.1.0-preview.3](https://github.com/greycreations/milspar/releases/download/v0.1.0-preview.3/docker-compose.yml) till en egen katalog. Ingen Git-kloning eller källkod behövs. Förhandsreleasen stöder Linux amd64 (vanliga Intel/AMD-servrar).
 2. Inställningarna finns direkt i `docker-compose.yml`; ingen `.env` behövs. Standardporten är 3080. Om du ändrar databaslösenord, ändra både DATABASE_URL och POSTGRES_PASSWORD till samma URL-säkra lösenord.
 3. Kör:
 

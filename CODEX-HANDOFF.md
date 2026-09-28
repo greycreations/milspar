@@ -10,7 +10,7 @@ Läs före implementation:
 - docs/PRODUCT-SPEC.md och docs/ROADMAP.md
 - docs/design/DESIGN-SYSTEM.md (**v1.0 LOCKED**) och docs/design/UI-SPEC.md
 - docs/DATA-MODEL.md och docs/ARCHITECTURE.md
-- docs/adr/0001–0005
+- docs/adr/0001–0006
 
 Behåll React/Vite/TypeScript, Fastify, PostgreSQL/Drizzle, Zod och pnpm workspace. Följ ljust UI med grafit och gul accent #F5C518 samt mobile-first input + desktop-first overview. Betydande teknikval kräver ADR; ändra inte designidentitet lokalt.
 
@@ -54,6 +54,6 @@ Utveckla schema/migration → kontrakt → domän/API → UI → relevanta teste
 
 ## Drift
 
-Följ README för start och uppgradering. Alla Compose-inställningar finns direkt i docker-compose.yml (webbport 3080); ingen .env behövs. Läs även docs/RELEASE-CHECKLIST.md: rootens Compose-fil använder publicerade images för v0.1.0-preview.1 och kräver varken Git eller lokal byggning. Startkommando: docker compose up -d --wait. Lokal källkodsbyggning använder docker-compose.dev.yml. Release-workflow verifierar anonym nedladdning före publicering. Förhandsreleasen stöder Linux amd64. Samma webbadress används från desktop och LAN-mobil.
+Följ README för start och uppgradering. Alla Compose-inställningar finns direkt i docker-compose.yml (webbport 3080); ingen .env behövs. Läs även docs/RELEASE-CHECKLIST.md: rootens Compose-fil använder publicerade images för v0.1.0-preview.3 och kräver varken Git eller lokal byggning. Startkommando: docker compose up -d --wait. Lokal källkodsbyggning använder docker-compose.dev.yml. Release-workflow verifierar anonym nedladdning före publicering. Förhandsreleasen stöder Linux amd64. Samma webbadress används från desktop och LAN-mobil.
 
 Behåll projektnamn/volymer vid uppgradering. Gör backup och använd aldrig down -v som uppgraderingslösning. Ändringar i Compose ändrar inte redan lagrade DB-lösenord; flytta över befintliga anpassade värden från äldre .env vid uppgradering. Auth saknas; privat testinstallation tills åtkomstkontroll införts.

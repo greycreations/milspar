@@ -1,9 +1,9 @@
-# Milspår v0.1.0-preview.1 — standalone, no Git or .env needed.
+# Milspår v0.1.0-preview.3 — standalone, no Git or .env needed.
 # All installation settings are in this file; no .env required.
 # Change port 3080 below if occupied. Keep existing DB credentials when upgrading.
 services:
   web:
-    image: ghcr.io/greycreations/milspar-web:v0.1.0-preview.1@sha256:110cc634822adcd9e2d945763e03b7905fb5e6b93a2fbab0a8f4b4634503b005
+    image: ghcr.io/greycreations/milspar-web:v0.1.0-preview.3@sha256:463aa79ad9b96163b8b14b8af9f41404137f844a42806fadc07a7a5b9f1a990f
     restart: unless-stopped
     ports:
       - "3080:80"
@@ -16,7 +16,7 @@ services:
       timeout: 5s
       retries: 5
   api:
-    image: ghcr.io/greycreations/milspar-api:v0.1.0-preview.1@sha256:0e8f0a0126eb9b7d38a63686a0b4c0af047cf0e04b40f257e166d711a45d0f3a
+    image: ghcr.io/greycreations/milspar-api:v0.1.0-preview.3@sha256:e92e26b53cde5fea3ba673df8ab2c8fe549d681430f3c128470356512bdfe566
     restart: unless-stopped
     environment: &api-environment
       API_PORT: 3001
@@ -34,7 +34,7 @@ services:
       timeout: 8s
       retries: 5
   migrate:
-    image: ghcr.io/greycreations/milspar-api:v0.1.0-preview.1@sha256:0e8f0a0126eb9b7d38a63686a0b4c0af047cf0e04b40f257e166d711a45d0f3a
+    image: ghcr.io/greycreations/milspar-api:v0.1.0-preview.3@sha256:e92e26b53cde5fea3ba673df8ab2c8fe549d681430f3c128470356512bdfe566
     restart: "no"
     command: ["pnpm", "--filter", "@milspar/api", "db:migrate"]
     environment: *api-environment
