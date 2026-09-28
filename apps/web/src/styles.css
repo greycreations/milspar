@@ -1,0 +1,52 @@
+:root {
+  font-family: Inter, Geist, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #171717;
+  background: #f7f7f5;
+  font-synthesis: none;
+  --color-bg: #f7f7f5;
+  --color-surface: #ffffff;
+  --color-text: #171717;
+  --color-text-muted: #6b6b67;
+  --color-border: #e3e3de;
+  --color-accent: #f5c518;
+  --color-accent-hover: #e5b600;
+  --radius-card: 14px;
+  --radius-control: 10px;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; min-height: 100vh; background: var(--color-bg); }
+button, input, textarea, select { font: inherit; }
+
+.app-shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.welcome-card {
+  width: min(680px, 100%);
+  padding: clamp(24px, 5vw, 48px);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 6px 20px rgba(0,0,0,.04);
+}
+
+.eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .12em; }
+h1 { margin: 12px 0; font-size: clamp(32px, 6vw, 48px); line-height: 1.05; }
+p { color: var(--color-text-muted); font-size: 16px; line-height: 1.5; max-width: 55ch; }
+button {
+  min-height: 44px;
+  margin-top: 16px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: var(--color-accent);
+  color: var(--color-text);
+  font-weight: 650;
+  cursor: pointer;
+}
+button:hover { background: var(--color-accent-hover); }
+button:focus-visible { outline: 3px solid rgba(23,23,23,.35); outline-offset: 3px; }
