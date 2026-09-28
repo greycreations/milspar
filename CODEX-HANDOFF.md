@@ -55,6 +55,6 @@ Utveckla schema/migration → kontrakt → domän/API → UI → relevanta teste
 
 ## Drift
 
-Följ README för start och uppgradering. Alla Compose-inställningar finns direkt i docker-compose.yml (webbport 3080); ingen .env behövs. Läs även docs/RELEASE-CHECKLIST.md: rootens Compose-fil använder publicerade images för v0.1.0-preview.3 och kräver varken Git eller lokal byggning. Startkommando: docker compose up -d --wait. Lokal källkodsbyggning använder docker-compose.dev.yml. Release-workflow verifierar anonym nedladdning före publicering. Förhandsreleasen stöder Linux amd64. Samma webbadress används från desktop och LAN-mobil.
+Följ README för start och uppgradering. Alla Compose-inställningar finns direkt i docker-compose.yml (webbport 3080); ingen .env behövs. Läs även docs/RELEASE-CHECKLIST.md: rootens Compose-fil använder publicerade images för v0.1.0-preview.4 och kräver varken Git eller lokal byggning. Startkommando: docker compose up -d --wait. Lokal källkodsbyggning använder docker-compose.dev.yml. Release-workflow verifierar anonym nedladdning före publicering. Förhandsreleasen stöder Linux amd64. Samma webbadress används från desktop och LAN-mobil.
 
 Behåll projektnamn/volymer vid uppgradering. Gör backup och använd aldrig down -v som uppgraderingslösning. Ändringar i Compose ändrar inte redan lagrade DB-lösenord; flytta över befintliga anpassade värden från äldre .env vid uppgradering. Auth saknas; privat testinstallation tills åtkomstkontroll införts.
