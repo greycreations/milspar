@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 const mode = process.argv[2];
-const base = "http://127.0.0.1:3080";
+const base = process.env.SMOKE_BASE_URL ?? "http://127.0.0.1:3080";
 if (mode === "create") {
   const response = await fetch(base + "/api/v1/vehicles", {
     method: "POST", headers: { "content-type": "application/json" },

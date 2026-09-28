@@ -1,0 +1,167 @@
+name: Publish standalone release
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, feat/vehicle-foundation]
+    paths:
+      - .github/workflows/release.yml
+      - release/**
+      - scripts/release/**
+permissions:
+  contents: read
+concurrency:
+  group: standalone-release
+  cancel-in-progress: false
+jobs:
+  publish-images:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck && pnpm build && pnpm test
+      - id: version
+        run: echo "version=v0.1.0-preview.${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish web
+        id: web
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/web/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ghcr.io/greycreations/milspar-web:${{ steps.version.outputs.version }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/greycreations/milspar
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ steps.version.outputs.version }}
+      - name: Publish API and migration runtime
+        id: api
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ghcr.io/greycreations/milspar-api:${{ steps.version.outputs.version }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/greycreations/milspar
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ steps.version.outputs.version }}
+      - name: Render digest-pinned Compose
+        env:
+          WEB_IMAGE: ghcr.io/greycreations/milspar-web:${{ steps.version.outputs.version }}@${{ steps.web.outputs.digest }}
+          API_IMAGE: ghcr.io/greycreations/milspar-api:${{ steps.version.outputs.version }}@${{ steps.api.outputs.digest }}
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          docker pull postgres:17-alpine
+          export DB_IMAGE="$(docker image inspect postgres:17-alpine --format '{{index .RepoDigests 0}}')"
+          node scripts/release/render-compose.mjs release-output
+          cp release/INSTALL.md release-output/INSTALL.md
+          cd release-output
+          sha256sum docker-compose.yml INSTALL.md > SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: standalone-compose
+          path: release-output/
+  verify-download:
+    needs: publish-images
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: standalone-compose
+          path: ${{ runner.temp }}/install
+      - name: Start from standalone file with anonymous image access
+        working-directory: ${{ runner.temp }}/install
+        run: |
+          rm INSTALL.md SHA256SUMS
+          test "$(find . -type f | wc -l)" -eq 1
+          test ! -e .env
+          export DOCKER_CONFIG="$(mktemp -d)"
+          docker compose config --quiet
+          # First publication may require the owner to make new GHCR packages public.
+          for attempt in $(seq 1 30); do
+            if docker compose pull; then break; fi
+            if [ "$attempt" -eq 30 ]; then
+              echo "::error::Images must allow anonymous pulls. Set both GHCR packages public and rerun this job."
+              exit 1
+            fi
+            sleep 10
+          done
+          docker compose up -d --wait
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm test:e2e
+        env:
+          E2E_BASE_URL: http://127.0.0.1:3080
+      - name: Verify persistence and alternate port
+        env:
+          INSTALL_DIR: ${{ runner.temp }}/install
+        run: |
+          node tests/smoke.mjs create
+          cd "$INSTALL_DIR"
+          docker compose down
+          sed -i 's/3080:80/3081:80/' docker-compose.yml
+          docker compose up -d --wait
+          cd "$GITHUB_WORKSPACE"
+          SMOKE_BASE_URL=http://127.0.0.1:3081 node tests/smoke.mjs verify
+      - name: Verify upgrade from original schema
+        env:
+          INSTALL_DIR: ${{ runner.temp }}/install
+        run: |
+          cd "$INSTALL_DIR"
+          docker compose down
+          docker compose -p legacy up -d db --wait
+          docker compose -p legacy exec -T db psql -U milspar -d milspar -v ON_ERROR_STOP=1 < "$GITHUB_WORKSPACE/apps/api/drizzle/0000_vehicle_foundation.sql"
+          echo "INSERT INTO vehicles (registration_number, make, model) VALUES ('LEGACY1', 'Volvo', '240');" | docker compose -p legacy exec -T db psql -U milspar -d milspar -v ON_ERROR_STOP=1
+          docker compose -p legacy up -d --wait
+          cd "$GITHUB_WORKSPACE"
+          SMOKE_BASE_URL=http://127.0.0.1:3081 node tests/smoke.mjs legacy
+      - name: Diagnostics
+        if: always()
+        working-directory: ${{ runner.temp }}/install
+        run: |
+          docker compose logs --no-color
+          docker compose -p legacy logs --no-color
+  release:
+    needs: [publish-images, verify-download]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: standalone-compose
+          path: release-output
+      - name: Publish verified preview release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          VERSION: ${{ needs.publish-images.outputs.version }}
+          COMMIT: ${{ github.sha }}
+        run: |
+          gh release create "$VERSION" release-output/* --target "$COMMIT" --prerelease --title "Milspår $VERSION" --notes-file release-output/INSTALL.md
