@@ -17,8 +17,8 @@ export async function buildApp() {
   app.get("/health", async () => ({ status: "ok", service: "milspar-api" }));
   app.get("/ready", async (_request, reply) => {
     try {
-      await db.execute(sql`select id from vehicles limit 0`);
-      await db.execute(sql`select id from odometer_readings limit 0`);
+      await db.execute(sql`select id, deleted_at from vehicles limit 0`);
+      await db.execute(sql`select id, deleted_at from odometer_readings limit 0`);
       return { status: "ready" };
     } catch {
       return reply.code(503).send({ status: "unavailable" });

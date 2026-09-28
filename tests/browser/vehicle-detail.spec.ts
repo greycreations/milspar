@@ -8,6 +8,63 @@ const vehicle = {
   odometerReadings: [{ id, valueKm: 0, recordedAt: "2026-01-01T10:00:00.000Z", sourceType: "manual" }], hasMoreReadings: false,
 };
 
+test("confirm removal, recover from failure, refresh mileage and remove vehicle", async ({ page, request }, testInfo) => {
+  let vehicleId = id;
+  const registration = `R${Date.now().toString(36)}${testInfo.project.name[0]}`.toUpperCase();
+  let removed = false;
+  let readingRemoved = false;
+  if (process.env.E2E_BASE_URL) {
+    const created = await request.post("/api/v1/vehicles", { data: { registrationNumber: registration, make: "Saab", model: "900", currentOdometerKm: 42 } });
+    expect(created.status()).toBe(201);
+    vehicleId = (await created.json()).id;
+  } else {
+    const data = { ...vehicle, registrationNumber: registration, make: "Saab", model: "900", currentOdometerKm: 42, odometerReadings: [{ ...vehicle.odometerReadings[0], valueKm: 42 }] };
+    await page.route("**/api/v1/vehicles", route => route.fulfill({ json: removed ? [] : [{ ...data, currentOdometerKm: readingRemoved ? null : 42 }] }));
+    await page.route(`**/api/v1/vehicles/${id}`, route => {
+      if (route.request().method() === "DELETE") { removed = true; return route.fulfill({ status: 204 }); }
+      return route.fulfill(removed ? { status: 404, json: {} } : { json: { ...data, currentOdometerKm: readingRemoved ? null : 42, odometerReadings: readingRemoved ? [] : data.odometerReadings } });
+    });
+    await page.route(`**/api/v1/vehicles/${id}/odometer-readings/*`, route => { readingRemoved = true; return route.fulfill({ status: 204 }); });
+  }
+  let failures = 1;
+  await page.route(`**/api/v1/vehicles/${vehicleId}/odometer-readings/*`, route => {
+    if (failures-- > 0) return route.fulfill({ status: 503, json: {} });
+    return route.fallback();
+  });
+  await page.goto(`/#vehicles/${vehicleId}`);
+  const removeReading = page.getByRole("button", { name: /^Ta bort avläsning/ });
+  await removeReading.click();
+  let dialog = page.getByRole("dialog");
+  await expect(dialog.getByRole("button", { name: "Avbryt" })).toBeFocused();
+  await expect(dialog).toContainText(registration);
+  await page.keyboard.press("Escape");
+  await expect(removeReading).toBeFocused();
+  await expect(page.locator(".kpi-value").first()).toHaveText("42 km");
+  await removeReading.click();
+  await dialog.getByRole("button", { name: "Ta bort", exact: true }).click();
+  await expect(dialog.getByRole("alert")).toContainText("Kunde inte ta bort");
+  await page.screenshot({ path: testInfo.outputPath("delete-confirmation.png"), fullPage: true });
+  await dialog.getByRole("button", { name: "Ta bort", exact: true }).click();
+  await expect(dialog).not.toBeVisible();
+  await expect(page.getByText("Ingen mätarställning registrerad", { exact: true })).toBeVisible();
+  await page.getByRole("link", { name: "Alla fordon" }).click();
+  const card = page.locator(".vehicle-card").filter({ hasText: registration });
+  await expect(card.locator(".odometer strong")).toHaveText("—");
+  await card.getByRole("link").click();
+  await page.getByRole("button", { name: "Ta bort fordon", exact: true }).click();
+  dialog = page.getByRole("dialog");
+  await dialog.getByRole("button", { name: "Avbryt" }).click();
+  await expect(page.getByRole("heading", { name: "Saab 900" })).toBeVisible();
+  await page.getByRole("button", { name: "Ta bort fordon", exact: true }).click();
+  await dialog.getByRole("button", { name: "Ta bort", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Mina fordon" })).toBeVisible();
+  await expect(page.locator(".vehicle-card").filter({ hasText: registration })).toHaveCount(0);
+  await page.reload();
+  await expect(page.locator(".vehicle-card").filter({ hasText: registration })).toHaveCount(0);
+  await page.goto(`/#vehicles/${vehicleId}`);
+  await expect(page.getByRole("alert")).toContainText("Fordonet finns inte");
+});
+
 test("vehicle card opens detail, timeline survives reload and browser back works", async ({ page, request }, testInfo) => {
   let vehicleId = id;
   const registration = `D${Date.now().toString(36)}${testInfo.project.name[0]}`.toUpperCase();

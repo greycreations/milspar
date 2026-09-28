@@ -24,6 +24,40 @@ beforeEach(async () => { await pg.exec("TRUNCATE vehicles CASCADE"); });
 afterAll(async () => { await app.close(); await pg.close(); });
 
 describe("vehicle API and persistence", () => {
+  it("removes readings only from their own vehicle and recalculates mileage including empty history", async () => {
+    const created = await app.inject({ method: "POST", url: "/api/v1/vehicles", payload });
+    const id = created.json().id;
+    const other = (await app.inject({ method: "POST", url: "/api/v1/vehicles", payload: { ...payload, registrationNumber: "OTHER" } })).json().id;
+    const initial = (await app.inject(`/api/v1/vehicles/${id}`)).json().odometerReadings[0].id;
+    const old = (await pg.query<{ id: string }>("INSERT INTO odometer_readings (vehicle_id, value_km, recorded_at) VALUES ($1, 0, '2020-01-01') RETURNING id", [id])).rows[0]!.id;
+    const remove = (vehicle: string, reading: string) => app.inject({ method: "DELETE", url: `/api/v1/vehicles/${vehicle}/odometer-readings/${reading}` });
+    expect((await remove(other, initial)).statusCode).toBe(404);
+    expect((await remove(id, "bad-id")).statusCode).toBe(400);
+    expect((await remove(id, initial)).statusCode).toBe(204);
+    expect((await remove(id, initial)).statusCode).toBe(404);
+    expect((await app.inject(`/api/v1/vehicles/${id}`)).json()).toMatchObject({ currentOdometerKm: 0, odometerReadings: [{ id: old }] });
+    expect((await app.inject("/api/v1/vehicles")).json().find((v: { id: string }) => v.id === id).currentOdometerKm).toBe(0);
+    expect((await remove(id, old)).statusCode).toBe(204);
+    expect((await app.inject(`/api/v1/vehicles/${id}`)).json()).toMatchObject({ currentOdometerKm: null, odometerReadings: [] });
+    expect((await pg.query("SELECT id FROM odometer_readings WHERE vehicle_id=$1 AND deleted_at IS NOT NULL", [id])).rows).toHaveLength(2);
+    expect((await app.inject(`/api/v1/vehicles/${other}`)).json().currentOdometerKm).toBe(12345);
+  });
+  it("hides a removed vehicle while preserving history and allowing identity reuse", async () => {
+    const input = { ...payload, vin: "VIN12345" };
+    const id = (await app.inject({ method: "POST", url: "/api/v1/vehicles", payload: input })).json().id;
+    const reading = (await app.inject(`/api/v1/vehicles/${id}`)).json().odometerReadings[0].id;
+    expect((await app.inject({ method: "DELETE", url: "/api/v1/vehicles/not-an-id" })).statusCode).toBe(400);
+    expect((await app.inject({ method: "DELETE", url: `/api/v1/vehicles/${id}` })).statusCode).toBe(204);
+    expect((await app.inject(`/api/v1/vehicles/${id}`)).statusCode).toBe(404);
+    expect((await app.inject("/api/v1/vehicles")).json()).toEqual([]);
+    expect((await app.inject({ method: "DELETE", url: `/api/v1/vehicles/${id}/odometer-readings/${reading}` })).statusCode).toBe(404);
+    expect((await pg.query("SELECT id FROM vehicles WHERE id=$1 AND deleted_at IS NOT NULL", [id])).rows).toHaveLength(1);
+    expect((await pg.query("SELECT id FROM odometer_readings WHERE vehicle_id=$1", [id])).rows).toHaveLength(1);
+    const replacement = await app.inject({ method: "POST", url: "/api/v1/vehicles", payload: input });
+    expect(replacement.statusCode).toBe(201);
+    expect(replacement.json().id).not.toBe(id);
+    expect((await app.inject({ method: "POST", url: "/api/v1/vehicles", payload: input })).statusCode).toBe(409);
+  });
   it("returns chronological, vehicle-scoped detail with matching current reading and bounded history", async () => {
     const created = await app.inject({ method: "POST", url: "/api/v1/vehicles", payload: { ...payload, currentOdometerKm: undefined, vin: "VIN123456", color: "Blå" } });
     const id = created.json().id;
@@ -102,6 +136,6 @@ it("adopts the old init-SQL database without deleting data and can migrate twice
     await migrate(legacyDb, { migrationsFolder: "./drizzle" });
     await migrate(legacyDb, { migrationsFolder: "./drizzle" });
     expect((await legacy.query("SELECT registration_number FROM vehicles")).rows).toEqual([{ registration_number: "OLD123" }]);
-    expect((await legacy.query("SELECT * FROM drizzle.__drizzle_migrations")).rows).toHaveLength(1);
+    expect((await legacy.query("SELECT * FROM drizzle.__drizzle_migrations")).rows).toHaveLength(2);
   } finally { await legacy.close(); }
 }, 30000);

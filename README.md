@@ -6,7 +6,7 @@ En självhostad digital servicebok för flera fordon, med mobile-first registrer
 
 ## Nuvarande funktioner
 
-Skapa och lista fordon med valfri första mätarställning. Öppna ett fordonskort för fordonsuppgifter, aktuell mätarställning och en tidslinje med de 50 senaste avläsningarna. Fordonsvyer har direktlänkar som fungerar efter omladdning. Fordon och avläsning sparas atomiskt i PostgreSQL. UI visar laddningsfel med återförsök och begripliga sparfel.
+Skapa och lista fordon med valfri första mätarställning. Öppna ett fordonskort för fordonsuppgifter, aktuell mätarställning och en tidslinje med de 50 senaste avläsningarna. Fordonsvyer har direktlänkar som fungerar efter omladdning. Fordon och enskilda mätaravläsningar kan tas bort efter bekräftelse; aktuell mätarställning räknas om. Borttagna poster bevaras i databasen men visas inte i appen. Återställning via gränssnittet finns ännu inte. Fordon och avläsning sparas atomiskt i PostgreSQL. UI visar laddningsfel med återförsök och begripliga sparfel.
 
 Servicehändelser, registrering av nya avläsningar, dokument, bilder, däck, kostnader och inloggning är kommande funktioner. Dashboardens Att göra/Senaste och övrig navigation är fortfarande platshållare.
 

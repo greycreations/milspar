@@ -52,7 +52,7 @@ function App() {
       </aside>
 
       <main className="content">
-        {detail ? <VehiclePage key={detail[1]} id={detail[1]!} section={detail[2] ?? "overview"}/> : <>
+        {detail ? <VehiclePage onChanged={loadVehicles} key={detail[1]} id={detail[1]!} section={detail[2] ?? "overview"}/> : <>
         <header className="topbar">
           <div><span className="eyebrow">ÖVERSIKT</span><h1>Mina fordon</h1></div>
           <div className="top-actions"><button className="icon-button" aria-label="Sök"><Search size={20}/></button><button onClick={() => setShowCreate(true)}><Plus size={18}/> Lägg till fordon</button></div>

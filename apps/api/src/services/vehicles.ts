@@ -1,5 +1,5 @@
 import type { CreateVehicle, VehicleDetail } from "@milspar/contracts";
-import { desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { odometerReadings, vehicles } from "../db/schema.js";
 
@@ -11,12 +11,12 @@ export const vehicleService = {
       modelYear: vehicles.modelYear,
       currentOdometerKm: sql<number | null>`(
         select reading.value_km from odometer_readings as reading
-        where reading.vehicle_id = "vehicles"."id"
+        where reading.vehicle_id = "vehicles"."id" and reading.deleted_at is null
         order by reading.recorded_at desc, reading.created_at desc, reading.id desc
         limit 1
       )`,
       coverImageUrl: sql<null>`null`,
-    }).from(vehicles).orderBy(desc(vehicles.createdAt));
+    }).from(vehicles).where(isNull(vehicles.deletedAt)).orderBy(desc(vehicles.createdAt));
   },
   async create(input: CreateVehicle) {
     return db.transaction(async (tx) => {
@@ -35,11 +35,28 @@ export const vehicleService = {
       return vehicle;
     });
   },
+  async remove(id: string) {
+    const [removed] = await db.update(vehicles).set({ deletedAt: new Date(), updatedAt: new Date() })
+      .where(and(eq(vehicles.id, id), isNull(vehicles.deletedAt))).returning({ id: vehicles.id });
+    return removed;
+  },
+  async removeReading(vehicleId: string, readingId: string) {
+    return db.transaction(async tx => {
+      // Serialize against vehicle removal; never mutate a different vehicle's reading.
+      const [vehicle] = await tx.select({ id: vehicles.id }).from(vehicles)
+        .where(and(eq(vehicles.id, vehicleId), isNull(vehicles.deletedAt))).for("update");
+      if (!vehicle) return undefined;
+      const [removed] = await tx.update(odometerReadings).set({ deletedAt: new Date() })
+        .where(and(eq(odometerReadings.id, readingId), eq(odometerReadings.vehicleId, vehicleId), isNull(odometerReadings.deletedAt)))
+        .returning({ id: odometerReadings.id });
+      return removed;
+    });
+  },
   async get(id: string) {
-    const [vehicle] = await db.select().from(vehicles).where(eq(vehicles.id, id)).limit(1);
+    const [vehicle] = await db.select().from(vehicles).where(and(eq(vehicles.id, id), isNull(vehicles.deletedAt))).limit(1);
     if (!vehicle) return undefined;
     const readings = await db.select().from(odometerReadings)
-      .where(eq(odometerReadings.vehicleId, id))
+      .where(and(eq(odometerReadings.vehicleId, id), isNull(odometerReadings.deletedAt)))
       .orderBy(desc(odometerReadings.recordedAt), desc(odometerReadings.createdAt), desc(odometerReadings.id))
       .limit(51);
     return {

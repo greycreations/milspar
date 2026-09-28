@@ -10,7 +10,7 @@ Läs före implementation:
 - docs/PRODUCT-SPEC.md och docs/ROADMAP.md
 - docs/design/DESIGN-SYSTEM.md (**v1.0 LOCKED**) och docs/design/UI-SPEC.md
 - docs/DATA-MODEL.md och docs/ARCHITECTURE.md
-- docs/adr/0001–0006
+- docs/adr/0001–0007
 
 Behåll React/Vite/TypeScript, Fastify, PostgreSQL/Drizzle, Zod och pnpm workspace. Följ ljust UI med grafit och gul accent #F5C518 samt mobile-first input + desktop-first overview. Betydande teknikval kräver ADR; ändra inte designidentitet lokalt.
 
@@ -18,10 +18,11 @@ Behåll React/Vite/TypeScript, Fastify, PostgreSQL/Drizzle, Zod och pnpm workspa
 
 PR #1 och PR #2 är squash-mergade till main. Nästa slice utvecklas på feat/vehicle-detail. Kontrollera alltid aktuell head och CI innan fortsatt arbete.
 
-Den här uppdateringen inför fordonsöversikt, direktlänkar och läsning av mätarhistorik. Utförda lokala kontroller: typecheck, build, nio API-/databastester med PGlite och tolv browserfall (desktop/mobil med kontrollerade API-svar). Docker finns inte i den lokala arbetsmiljön. GitHub-workflow verifierar riktig Compose/PostgreSQL, beständighet och uppgradering; använd dess faktiska status, inte detta dokument, som bevis på containerkörningen.
+Den här uppdateringen inför fordonsöversikt, direktlänkar och läsning av mätarhistorik. Utförda lokala kontroller: typecheck, build, elva API-/databastester med PGlite och fjorton browserfall (desktop/mobil med kontrollerade API-svar). Docker finns inte i den lokala arbetsmiljön. GitHub-workflow verifierar riktig Compose/PostgreSQL, beständighet och uppgradering; använd dess faktiska status, inte detta dokument, som bevis på containerkörningen.
 
 ## Vad som finns
 
+- Ta bort fordon och enskilda mätaravläsningar med bekräftelse och spårbar deleted_at. Aktuell mätarställning exkluderar borttagna avläsningar. Migration 0001 bevarar data och gör reg/VIN unika endast för aktiva fordon.
 - Skapa/lista fordon och öppna fordonsöversikt via klickbart kort eller direktlänk.
 - Detaljkontrakt med VIN, färg, aktuellt mätarvärde och högst 50 senaste avläsningar (äldre data bevaras).
 - Läsbar mätartidslinje, ärliga tomlägen och återförsök. Desktop-sidebar, tabletmeny och mobilnavigation.
