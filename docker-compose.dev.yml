@@ -19,6 +19,7 @@ services:
     environment:
       API_PORT: 3001
       DATABASE_URL: ${DATABASE_URL:-postgresql://milspar:change-me@db:5432/milspar}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
       UPLOAD_PATH: /data/uploads
       TZ: ${TZ:-Europe/Stockholm}
     ports:
@@ -44,6 +45,7 @@ services:
       retries: 10
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./apps/api/drizzle/0000_vehicle_foundation.sql:/docker-entrypoint-initdb.d/0000_vehicle_foundation.sql:ro
 
 volumes:
   postgres_data:
